@@ -1,0 +1,233 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  padding: 24px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 44px 40px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: var(--shadow);
+}
+
+.logo {
+  font-family: "Syne", sans-serif;
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: -0.5px;
+  color: var(--ink);
+  text-decoration: none;
+  display: block;
+  margin-bottom: 28px;
+}
+
+.logo span {
+  color: var(--pulse);
+}
+
+.title {
+  font-family: "Syne", sans-serif;
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.5px;
+  margin-bottom: 6px;
+}
+
+.sub {
+  font-size: 14px;
+  color: var(--ink2);
+  margin-bottom: 28px;
+}
+
+.googleBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: var(--surface2);
+  color: var(--ink);
+  border: 1px solid var(--border);
+  border-radius: 50px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.15s;
+  font-family: "DM Sans", sans-serif;
+}
+
+.googleBtn:hover:not(:disabled) {
+  border-color: rgba(155, 127, 212, 0.4);
+  transform: translateY(-1px);
+}
+
+.googleBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0;
+  color: var(--ink2);
+  font-size: 12px;
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.field input {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-size: 14px;
+  color: var(--ink);
+  font-family: "DM Sans", sans-serif;
+  transition: border-color 0.2s;
+  outline: none;
+  width: 100%;
+}
+
+.field input::placeholder {
+  color: var(--ink2);
+  opacity: 0.5;
+}
+
+.field input:focus {
+  border-color: var(--accent);
+}
+
+/* PASSWORD STRENGTH */
+.strengthBar {
+  height: 3px;
+  background: var(--border);
+  border-radius: 99px;
+  overflow: hidden;
+  margin-top: 2px;
+}
+
+.strengthFill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.3s, background 0.3s;
+}
+
+.strengthLabel {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.weak   { background: #FF4D6D; color: #FF4D6D; }
+.fair   { background: #FFB300; color: #FFB300; }
+.good   { background: #6482FF; color: #6482FF; }
+.strong { background: #00C9A7; color: #00C9A7; }
+
+/* ERROR */
+.error {
+  background: rgba(255, 77, 109, 0.1);
+  border: 1px solid rgba(255, 77, 109, 0.25);
+  color: var(--pulse);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.submitBtn {
+  width: 100%;
+  background: var(--pulse);
+  color: #fff;
+  border: none;
+  border-radius: 50px;
+  padding: 13px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s, opacity 0.2s;
+  font-family: "DM Sans", sans-serif;
+  margin-top: 4px;
+}
+
+.submitBtn:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.submitBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.terms {
+  font-size: 12px;
+  color: var(--ink2);
+  text-align: center;
+  line-height: 1.6;
+}
+
+.terms a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.terms a:hover {
+  text-decoration: underline;
+}
+
+.switchLink {
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink2);
+  margin-top: 22px;
+}
+
+.switchLink a {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.switchLink a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+  .card {
+    padding: 32px 24px;
+  }
+}
