@@ -16,6 +16,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <meta
+          name="google-adsense-account"
+          content="ca-pub-3645158319821683"
+        />
+      </head>
       <body>
         <ThemeProvider>
           <AuthProvider>{children}</AuthProvider>
