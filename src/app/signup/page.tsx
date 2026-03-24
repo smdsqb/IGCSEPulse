@@ -31,7 +31,7 @@ export default function SignupPage() {
     setLoading(true);
     try {
       await registerWithEmail(email, password);
-      router.push("/");
+      router.push("/dashboard");
     } catch (err: unknown) {
       setError(getFirebaseError(err));
     } finally {
@@ -44,7 +44,7 @@ export default function SignupPage() {
     setLoading(true);
     try {
       await signInWithGoogle();
-      router.push("/");
+      router.push("/dashboard");
     } catch (err: unknown) {
       setError(getFirebaseError(err));
     } finally {
