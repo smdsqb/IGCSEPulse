@@ -19,17 +19,20 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const saved = localStorage.getItem("igcsepulse-theme") as Theme | null;
-    if (saved) setThemeState(saved);
+    const initial = saved ?? "dark";
+    setThemeState(initial);
+    document.documentElement.setAttribute("data-theme", initial);
   }, []);
 
   const setTheme = (t: Theme) => {
     setThemeState(t);
     localStorage.setItem("igcsepulse-theme", t);
+    document.documentElement.setAttribute("data-theme", t);
   };
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme }}>
-      <div data-theme={theme}>{children}</div>
+      {children}
     </ThemeContext.Provider>
   );
 }
