@@ -1,0 +1,26 @@
+.footer {
+  text-align: center;
+  padding: 40px;
+  border-top: 1px solid var(--border);
+  margin-top: 20px;
+}
+
+.logo {
+  font-family: "Syne", sans-serif;
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: -0.5px;
+  color: var(--ink);
+  text-decoration: none;
+  display: inline-block;
+  margin-bottom: 8px;
+}
+
+.logo span {
+  color: var(--pulse);
+}
+
+.footer p {
+  font-size: 13px;
+  color: var(--ink2);
+}
