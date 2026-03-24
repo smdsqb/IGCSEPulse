@@ -7,7 +7,7 @@ import {
   useState,
   ReactNode,
 } from "react";
-import { auth, onAuthStateChanged, type User } from "@/lib/firebase";
+import { subscribeToAuthStateChanged, type User } from "@/lib/firebase";
 
 interface AuthContextType {
   user: User | null;
@@ -24,7 +24,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (u) => {
+    const unsubscribe = subscribeToAuthStateChanged((u) => {
       setUser(u);
       setLoading(false);
     });
