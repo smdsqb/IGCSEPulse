@@ -1,0 +1,59 @@
+@import url("https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@400;500;600&display=swap");
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+[data-theme="dark"] {
+  --pulse: #FF4D6D;
+  --pulse-dark: #FF7088;
+  --ink: #F0EEFF;
+  --ink2: #A89EC9;
+  --surface: #0D0B14;
+  --surface2: #13101F;
+  --card: #1A1628;
+  --card2: #201C32;
+  --accent: #9B7FD4;
+  --accent2: #00C9A7;
+  --border: rgba(155, 127, 212, 0.15);
+  --tag-bg: #1E1635;
+  --tag-text: #B39DDB;
+  --shadow: 0 4px 28px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="light"] {
+  --pulse: #FF4D6D;
+  --pulse-dark: #C9184A;
+  --ink: #0D0D1A;
+  --ink2: #3A3A55;
+  --surface: #F7F5FF;
+  --surface2: #EEEAF8;
+  --card: #FFFFFF;
+  --card2: #F7F5FF;
+  --accent: #7B5EA7;
+  --accent2: #00C9A7;
+  --border: rgba(123, 94, 167, 0.15);
+  --tag-bg: #F0EBFF;
+  --tag-text: #5E35B1;
+  --shadow: 0 4px 24px rgba(123, 94, 167, 0.1);
+}
+
+body {
+  font-family: "DM Sans", sans-serif;
+  background: var(--surface);
+  color: var(--ink);
+  min-height: 100vh;
+  transition: background 0.3s, color 0.3s;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+button {
+  font-family: "DM Sans", sans-serif;
+  cursor: pointer;
+}
