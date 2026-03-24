@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     "A community + AI platform built for IGCSE students. Ask doubts, get mark scheme help, and connect with peers.",
   icons: {
     icon: [
-      { url: "/favicon.png", type: "image/png" },
+      { url: "/Favicon.svg", type: "image/svg+xml" },
     ],
   },
 };
