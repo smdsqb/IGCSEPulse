@@ -24,3 +24,17 @@
   font-size: 13px;
   color: var(--ink2);
 }
+
+.links {
+  margin-top: 10px;
+}
+
+.links a {
+  color: #aaa;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.links a:hover {
+  color: white;
+}
