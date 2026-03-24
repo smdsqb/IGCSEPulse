@@ -7,6 +7,11 @@ export const metadata: Metadata = {
   title: "IGCSEPulse — Your IGCSE doubts, answered.",
   description:
     "A community + AI platform built for IGCSE students. Ask doubts, get mark scheme help, and connect with peers.",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+  },
 };
 
 export default function RootLayout({
