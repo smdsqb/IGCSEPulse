@@ -19,7 +19,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await loginWithEmail(email, password);
-      router.push("/");
+      router.push("/dashboard");
     } catch (err: unknown) {
       setError(getFirebaseError(err));
     } finally {
@@ -32,7 +32,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await signInWithGoogle();
-      router.push("/");
+      router.push("/dashboard");
     } catch (err: unknown) {
       setError(getFirebaseError(err));
     } finally {
