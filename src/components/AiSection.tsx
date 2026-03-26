@@ -1,4 +1,4 @@
-'use client';
+"use client";
 import { useState, useEffect } from "react";
 import styles from "./AiSection.module.css";
 import { auth, onAuthStateChanged, type User } from "@/lib/firebase";
