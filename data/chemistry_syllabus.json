@@ -1,0 +1,32 @@
+{
+  "code": "0620",
+  "name": "Chemistry",
+  "examBoard": "Cambridge IGCSE",
+  "syllabus": {
+    "content": "States of matter, atoms, bonding, stoichiometry, electrochemistry, reactions, acids/bases, periodic table, metals, organic chemistry",
+    "topics": [
+      {"topicName": "States of matter", "subtopics": ["Solids", "Liquids", "Gases", "Diffusion"]},
+      {"topicName": "Atoms and bonding", "subtopics": ["Atomic structure", "Ionic bonding", "Covalent bonding", "Metallic bonding"]},
+      {"topicName": "Stoichiometry", "subtopics": ["Moles", "Empirical formula", "Concentration", "Gas volumes"]},
+      {"topicName": "Chemical reactions", "subtopics": ["Rate of reaction", "Equilibrium", "Redox"]},
+      {"topicName": "Acids and bases", "subtopics": ["Properties", "pH scale", "Salts", "Titration"]},
+      {"topicName": "Periodic table", "subtopics": ["Group I", "Group VII", "Group VIII", "Transition elements"]},
+      {"topicName": "Organic chemistry", "subtopics": ["Alkanes", "Alkenes", "Alcohols", "Polymers"]}
+    ]
+  },
+  "paperStructure": {
+    "paper2": {"name": "Multiple Choice Extended", "duration": "45m", "marks": 40},
+    "paper4": {"name": "Theory Extended", "duration": "1h 15m", "marks": 80},
+    "paper6": {"name": "Alternative to Practical", "duration": "1h", "marks": 40}
+  },
+  "commandWords": {
+    "define": "Give exact meaning",
+    "balance": "Balance equation",
+    "predict": "Suggest based on knowledge",
+    "explain": "Give reasons"
+  },
+  "examinerReports": {
+    "commonMistakes": ["Unbalanced equations", "No state symbols", "Mole calculation errors", "Wrong ion identification"],
+    "examinerTips": ["Always balance equations", "Include state symbols", "Show all calculation steps", "Learn ion tests", "Know reactivity series"]
+  }
+}
