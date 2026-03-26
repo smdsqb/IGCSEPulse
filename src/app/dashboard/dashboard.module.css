@@ -234,3 +234,8 @@
     display: none;
   }
 }
+
+.badgeLive {
+  background: rgba(0, 201, 167, 0.12);
+  color: #00C9A7;
+}
