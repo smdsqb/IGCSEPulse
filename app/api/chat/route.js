@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
+import { db } from '@/src/lib/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import business from '@/src/data/business_syllabus.json';
 import math from '@/src/data/math_syllabus.json';
 import physics from '@/src/data/physics_syllabus.json';
 import chemistry from '@/src/data/chemistry_syllabus.json';
 import cs from '@/src/data/computer-science_syllabus.json';
 import english from '@/src/data/english_syllabus.json';
-import { saveChat } from '@/src/lib/firebase';
 
 const subjects = { business, math, physics, chemistry, 'computer-science': cs, english };
 
@@ -44,9 +45,19 @@ export async function POST(request) {
     const result = await response.json();
     const answer = result.choices[0].message.content;
     
-    // Save to Firebase if you have it set up
-    if (saveChat) {
-      await saveChat(userId, subject, question, answer, marks);
+    // Save to Firebase using your existing db
+    try {
+      await addDoc(collection(db, 'ai_chats'), {
+        userId: userId || 'anonymous',
+        subject,
+        question,
+        answer,
+        marks: marks || null,
+        timestamp: serverTimestamp()
+      });
+    } catch (dbError) {
+      console.error('Firebase save error:', dbError);
+      // Don't fail the request if Firebase save fails
     }
     
     return NextResponse.json({ reply: answer, code: data.code });
@@ -54,7 +65,7 @@ export async function POST(request) {
   } catch (error) {
     console.error('API Error:', error);
     return NextResponse.json({ 
-      reply: 'Error. Please try again. ' + (error.message || '') 
+      reply: 'Error. Please try again.' 
     }, { status: 500 });
   }
 }
