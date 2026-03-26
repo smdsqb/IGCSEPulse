@@ -1,4 +1,5 @@
 import styles from "./Hero.module.css";
+import Link from "next/link";
 
 export default function Hero() {
   return (
@@ -16,8 +17,8 @@ export default function Hero() {
           mark scheme help, and connect with peers who actually get it.
         </p>
         <div className={styles.heroBtns}>
-          <button className={styles.btnPrimary}>Join the Community</button>
-          <button className={styles.btnOutline}>Browse Questions</button>
+          <Link href="/community" className={styles.btnPrimary}>Join the Community</Link>
+          <Link href="/community" className={styles.btnOutline}>Browse Questions</Link>
         </div>
       </div>
 
