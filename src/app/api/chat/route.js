@@ -53,8 +53,9 @@ Rules:
 
 Student question: ${question}`;
 
-    // Google Gemini API - Free tier
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+    // Google Gemini API - Correct endpoint
+    const apiKey = process.env.GEMINI_API_KEY;
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -79,7 +80,7 @@ Student question: ${question}`;
       const errorText = await response.text();
       console.error('Gemini API error:', response.status, errorText);
       return NextResponse.json({ 
-        reply: `AI service error: ${response.status}. Please try again.` 
+        reply: `AI service error: ${response.status}. Please make sure your Gemini API key is valid.` 
       });
     }
 
