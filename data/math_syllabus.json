@@ -1,0 +1,34 @@
+{
+  "code": "0580",
+  "name": "Mathematics",
+  "examBoard": "Cambridge IGCSE",
+  "syllabus": {
+    "content": "Number, Algebra, Geometry, Mensuration, Trigonometry, Vectors, Probability, Statistics",
+    "topics": [
+      {"topicName": "Number", "subtopics": ["Fractions", "Decimals", "Percentages", "Ratio", "Standard form"]},
+      {"topicName": "Algebra", "subtopics": ["Equations", "Inequalities", "Graphs", "Sequences", "Functions"]},
+      {"topicName": "Geometry", "subtopics": ["Angles", "Congruence", "Similarity", "Circle theorems"]},
+      {"topicName": "Mensuration", "subtopics": ["Area", "Perimeter", "Volume", "Surface area"]},
+      {"topicName": "Trigonometry", "subtopics": ["Pythagoras", "Sine", "Cosine", "Bearings"]},
+      {"topicName": "Probability", "subtopics": ["Basic probability", "Tree diagrams", "Conditional probability"]},
+      {"topicName": "Statistics", "subtopics": ["Mean", "Median", "Mode", "Histograms", "Cumulative frequency"]}
+    ]
+  },
+  "paperStructure": {
+    "paper1": {"name": "Core Short Answer", "duration": "1h", "marks": 56},
+    "paper2": {"name": "Core Structured", "duration": "1h 30m", "marks": 70},
+    "paper3": {"name": "Extended Short Answer", "duration": "1h 15m", "marks": 70},
+    "paper4": {"name": "Extended Structured", "duration": "2h", "marks": 100}
+  },
+  "commandWords": {
+    "calculate": "Show numerical working",
+    "solve": "Find all values",
+    "simplify": "Reduce to simplest form",
+    "prove": "Demonstrate using logical steps",
+    "sketch": "Draw approximate shape"
+  },
+  "examinerReports": {
+    "commonMistakes": ["Not showing working", "Calculator errors", "Sign errors", "Not converting units", "Confusing area and perimeter"],
+    "examinerTips": ["Show ALL working", "Write formulas first", "Check calculator mode", "Draw large clear graphs", "Check if answers are reasonable"]
+  }
+}
