@@ -165,18 +165,6 @@
   40% { transform: translateY(-6px); }
 }
 
-@media (max-width: 800px) {
-  .wrapper {
-    padding: 0 20px 40px;
-  }
-
-  .aiSection {
-    grid-template-columns: 1fr;
-    padding: 30px 24px;
-  }
-}
-/* Add these new styles at the end of your AiSection.module.css */
-
 /* Active Chat Styles */
 .activeChat {
   display: flex;
@@ -338,4 +326,15 @@
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+@media (max-width: 800px) {
+  .wrapper {
+    padding: 0 20px 40px;
+  }
+
+  .aiSection {
+    grid-template-columns: 1fr;
+    padding: 30px 24px;
+  }
 }
