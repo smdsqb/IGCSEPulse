@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from "react";
 import styles from "./AiSection.module.css";
-import { auth, onAuthStateChanged, type User } from "@/src/lib/firebase";
+import { auth, onAuthStateChanged, type User } from "@/lib/firebase";
 
 export default function AiSection() {
   const [question, setQuestion] = useState("");
@@ -12,7 +12,6 @@ export default function AiSection() {
   const [showChat, setShowChat] = useState(false);
   const [user, setUser] = useState<User | null>(null);
 
-  // Track authenticated user
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
@@ -42,7 +41,7 @@ export default function AiSection() {
           question,
           subject,
           marks: marks ? parseInt(marks) : null,
-          userId: user?.uid || null,  // Pass user ID if logged in
+          userId: user?.uid || null,
         }),
       });
       const data = await res.json();
@@ -53,7 +52,6 @@ export default function AiSection() {
     setLoading(false);
   };
 
-  // Rest of your component remains the same as before...
   return (
     <section className={styles.wrapper}>
       <div className={styles.aiSection}>
