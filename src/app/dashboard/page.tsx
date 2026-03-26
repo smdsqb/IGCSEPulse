@@ -65,29 +65,28 @@ export default function DashboardPage() {
             <div className={styles.cardArrow}>→</div>
           </Link>
 
-          {/* AI Card — Coming Soon */}
-          <div className={`${styles.card} ${styles.cardDisabled}`}>
+          {/* AI Card — LIVE */}
+          <Link href="/ask-ai" className={styles.card}>
             <div className={`${styles.cardIcon} ${styles.iconAi}`}>✦</div>
             <div className={styles.cardContent}>
               <div className={styles.cardTitleRow}>
                 <div className={styles.cardTitle}>Ask AI</div>
-                <span className={styles.badge}>Coming Soon</span>
+                <span className={`${styles.badge} ${styles.badgeLive}`}>Live ✦</span>
               </div>
               <div className={styles.cardDesc}>
-                Your personal IGCSE tutor trained on past papers, mark
-                schemes, and the full syllabus. Ask anything — get
-                examiner-approved answers.
+                Your personal IGCSE tutor trained on the full syllabus, past
+                papers and mark schemes. Ask anything — get examiner-accurate answers.
               </div>
               <div className={styles.cardStats}>
-                <span>Textbooks</span>
+                <span>6 subjects</span>
                 <span>·</span>
-                <span>Past papers</span>
+                <span>Powered by DeepSeek</span>
                 <span>·</span>
-                <span>Mark schemes</span>
+                <span className={styles.statGreen}>Live now</span>
               </div>
             </div>
-            <div className={`${styles.cardArrow} ${styles.arrowMuted}`}>→</div>
-          </div>
+            <div className={styles.cardArrow}>→</div>
+          </Link>
 
         </div>
 
