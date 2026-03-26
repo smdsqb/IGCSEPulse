@@ -53,9 +53,9 @@ Rules:
 
 Student question: ${question}`;
 
-    // Google Gemini API - Using gemini-pro model
+    // Google Gemini API - Using official model from Google docs
     const apiKey = process.env.GEMINI_API_KEY;
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
