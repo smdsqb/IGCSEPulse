@@ -17,7 +17,6 @@ const syllabuses = {
   english,
 };
 
-// Initialise Firebase Admin only on the server
 function getAdminDb() {
   if (getApps().length === 0) {
     initializeApp({
@@ -49,55 +48,48 @@ Rules:
 - Answer based ONLY on the Cambridge IGCSE syllabus.
 - For ${marks || 'any'} marks, follow the Cambridge marking scheme format.
 - For 6+ marks, always include evaluation/judgement.
-- Be concise, student-friendly, and examiner-accurate.
+- Be concise, student-friendly, and examiner-accurate.`;
 
-Student question: ${question}`;
+    const apiKey = process.env.ANTHROPIC_API_KEY;
 
-    // Google Gemini API - Free tier model (gemini-1.5-flash-8b)
-    const apiKey = process.env.GEMINI_API_KEY;
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`, {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-goog-api-key': apiKey,
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              { text: systemPrompt }
-            ]
-          }
+        model: 'claude-haiku-4-5-20251001', // fast + cheap, great for tutoring
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: [
+          { role: 'user', content: question }
         ],
-        generationConfig: {
-          temperature: 0.3,
-          maxOutputTokens: 1000,
-        }
+        temperature: 0.3,
       }),
     });
 
-    // Check if response is OK
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Gemini API error:', response.status, errorText);
-      return NextResponse.json({ 
-        reply: `AI service error: ${response.status}. Please make sure your Gemini API key is valid.` 
+      console.error('Claude API error:', response.status, errorText);
+      return NextResponse.json({
+        reply: `AI service error: ${response.status}. Please check your Anthropic API key.`,
       });
     }
 
     const result = await response.json();
-    
-    // Validate response structure
-    if (!result.candidates || !result.candidates[0] || !result.candidates[0].content) {
-      console.error('Invalid Gemini response structure:', result);
-      return NextResponse.json({ 
-        reply: 'Sorry, I received an invalid response. Please try again.' 
+
+    if (!result.content || !result.content[0]) {
+      console.error('Invalid Claude response structure:', result);
+      return NextResponse.json({
+        reply: 'Sorry, I received an invalid response. Please try again.',
       });
     }
-    
-    const answer = result.candidates[0].content.parts[0].text;
 
-    // Save to Firestore using Admin SDK (server-safe)
+    const answer = result.content[0].text;
+
+    // Save to Firestore
     try {
       const adminDb = getAdminDb();
       await adminDb.collection('ai_chats').add({
@@ -110,15 +102,14 @@ Student question: ${question}`;
       });
     } catch (dbError) {
       console.error('Firebase save error:', dbError);
-      // Non-fatal — still return the answer
     }
 
     return NextResponse.json({ reply: answer, code: data.code });
-    
+
   } catch (error) {
     console.error('API Error:', error);
-    return NextResponse.json({ 
-      reply: `Error: ${error.message || 'Please try again.'}` 
+    return NextResponse.json({
+      reply: `Error: ${error.message || 'Please try again.'}`,
     }, { status: 500 });
   }
 }
