@@ -1,0 +1,31 @@
+{
+  "code": "0450",
+  "name": "Business Studies",
+  "examBoard": "Cambridge IGCSE",
+  "syllabus": {
+    "content": "1. Understanding business activity\n2. People in business\n3. Marketing\n4. Operations management\n5. Financial information and decisions\n6. External influences on business activity",
+    "topics": [
+      {"topicName": "Understanding business activity", "subtopics": ["Business activity", "Classification", "Enterprise", "Business organization", "Objectives"]},
+      {"topicName": "People in business", "subtopics": ["Motivation", "Organization", "Recruitment", "Communication"]},
+      {"topicName": "Marketing", "subtopics": ["Market research", "Marketing mix", "Marketing strategy"]},
+      {"topicName": "Operations management", "subtopics": ["Production", "Costs", "Quality", "Location"]},
+      {"topicName": "Financial information", "subtopics": ["Business finance", "Cash flow", "Income statements", "Analysis of accounts"]},
+      {"topicName": "External influences", "subtopics": ["Economic issues", "Environmental issues", "International business"]}
+    ]
+  },
+  "paperStructure": {
+    "paper1": {"name": "Short Answer & Structured", "duration": "1h 30m", "marks": 80},
+    "paper2": {"name": "Case Study", "duration": "1h 30m", "marks": 80}
+  },
+  "commandWords": {
+    "define": "Give exact meaning (1-2 marks)",
+    "describe": "Give key features (2-4 marks)",
+    "explain": "Give reasons (4-6 marks)",
+    "analyse": "Break down into parts (6-8 marks)",
+    "evaluate": "Make judgement with evidence (8-12 marks)"
+  },
+  "examinerReports": {
+    "commonMistakes": ["Not reading questions carefully", "Forgetting to define terms", "No evaluation in 6-mark questions", "Confusing profit and cash flow"],
+    "examinerTips": ["Define key terms first", "Use PEEL structure", "Show workings for calculations", "Include both sides for evaluate questions"]
+  }
+}
