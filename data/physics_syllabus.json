@@ -1,0 +1,31 @@
+{
+  "code": "0625",
+  "name": "Physics",
+  "examBoard": "Cambridge IGCSE",
+  "syllabus": {
+    "content": "Motion, forces, energy, thermal physics, waves, electricity, magnetism, nuclear physics, space physics",
+    "topics": [
+      {"topicName": "Motion, forces and energy", "subtopics": ["Speed", "Velocity", "Acceleration", "Forces", "Momentum", "Energy", "Work", "Power"]},
+      {"topicName": "Thermal physics", "subtopics": ["States of matter", "Specific heat capacity", "Latent heat", "Conduction", "Convection", "Radiation"]},
+      {"topicName": "Waves", "subtopics": ["Wave properties", "Light", "Sound", "Electromagnetic spectrum"]},
+      {"topicName": "Electricity and magnetism", "subtopics": ["Circuits", "Current", "Voltage", "Resistance", "Electromagnetism"]},
+      {"topicName": "Nuclear physics", "subtopics": ["Atomic structure", "Radioactivity", "Half-life", "Fission", "Fusion"]}
+    ]
+  },
+  "paperStructure": {
+    "paper2": {"name": "Multiple Choice Extended", "duration": "45m", "marks": 40},
+    "paper4": {"name": "Theory Extended", "duration": "1h 15m", "marks": 80},
+    "paper6": {"name": "Alternative to Practical", "duration": "1h", "marks": 40}
+  },
+  "commandWords": {
+    "define": "Give exact meaning",
+    "state": "Give concise answer",
+    "explain": "Give reasons",
+    "calculate": "Show numerical working",
+    "describe": "Give detailed account"
+  },
+  "examinerReports": {
+    "commonMistakes": ["Units missing", "No formulas shown", "Confusing mass and weight", "Circuit symbol errors", "Half-life calculation mistakes"],
+    "examinerTips": ["Always include units", "Write formula first", "Show working", "Draw diagrams with pencil", "Know required practicals"]
+  }
+}
