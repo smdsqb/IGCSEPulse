@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import business from '@/data/business_syllabus.json';
-import math from '@/data/math_syllabus.json';
-import physics from '@/data/physics_syllabus.json';
-import chemistry from '@/data/chemistry_syllabus.json';
-import cs from '@/data/computer-science_syllabus.json';
-import english from '@/data/english_syllabus.json';
-import { saveChat } from '@/lib/firebase';
+import business from '@/src/data/business_syllabus.json';
+import math from '@/src/data/math_syllabus.json';
+import physics from '@/src/data/physics_syllabus.json';
+import chemistry from '@/src/data/chemistry_syllabus.json';
+import cs from '@/src/data/computer-science_syllabus.json';
+import english from '@/src/data/english_syllabus.json';
+import { saveChat } from '@/src/lib/firebase';
 
 const subjects = { business, math, physics, chemistry, 'computer-science': cs, english };
 
@@ -15,12 +15,14 @@ export async function POST(request) {
     const data = subjects[subject];
     
     if (!data) {
-      return NextResponse.json({ reply: 'Subject not found. Choose: business, math, physics, chemistry, computer-science, english' });
+      return NextResponse.json({ 
+        reply: 'Subject not found. Choose: business, math, physics, chemistry, computer-science, english' 
+      });
     }
     
     const systemPrompt = `You are a Cambridge IGCSE ${data.name} (${data.code}) examiner. 
     Syllabus: ${data.syllabus.content}
-    Topics: ${data.syllabus.topics.map(t => t.topicName).join(', ')}
+    Topics: ${data.syllabus.topics?.map(t => t.topicName).join(', ') || ''}
     Rules: Answer based ONLY on Cambridge syllabus. For ${marks || 'any'} marks, follow marking scheme. For 6+ marks, include evaluation.`;
     
     const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
@@ -42,11 +44,17 @@ export async function POST(request) {
     const result = await response.json();
     const answer = result.choices[0].message.content;
     
-    await saveChat(userId, subject, question, answer, marks);
+    // Save to Firebase if you have it set up
+    if (saveChat) {
+      await saveChat(userId, subject, question, answer, marks);
+    }
     
     return NextResponse.json({ reply: answer, code: data.code });
     
   } catch (error) {
-    return NextResponse.json({ reply: 'Error. Please try again.' }, { status: 500 });
+    console.error('API Error:', error);
+    return NextResponse.json({ 
+      reply: 'Error. Please try again. ' + (error.message || '') 
+    }, { status: 500 });
   }
 }
