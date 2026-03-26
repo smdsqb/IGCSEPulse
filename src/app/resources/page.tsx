@@ -4,20 +4,6 @@ import styles from "./resources.module.css";
 
 const resources = [
   {
-    icon: "📄",
-    title: "Past Papers",
-    desc: "Access a full library of IGCSE past papers organised by subject, year, and session.",
-    color: "colorBlue",
-    tag: "Coming Soon",
-  },
-  {
-    icon: "✅",
-    title: "Mark Schemes",
-    desc: "Official mark schemes paired with every past paper so you know exactly how to score full marks.",
-    color: "colorGreen",
-    tag: "Coming Soon",
-  },
-  {
     icon: "📘",
     title: "Textbooks",
     desc: "Curated reading materials and chapter summaries aligned to the IGCSE syllabus.",
