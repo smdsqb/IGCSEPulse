@@ -1,7 +1,26 @@
+/* ROOT VARIABLES (Adjust these to match your theme) */
+:root {
+  --pulse: #ff4d6d;
+  --ink: #1a1a1a;
+  --ink2: #666666;
+  --card: #ffffff;
+  --border: #eeeeee;
+  --tag-bg: #f5f5f5;
+  --tag-text: #444444;
+  --surface2: #f9f9f9;
+  --accent: #9b7fd4;
+}
+
+/* GLOBAL RESET FOR MODULE */
+.section, .section * {
+  box-sizing: border-box;
+}
+
 .section {
   max-width: 1100px;
   margin: 0 auto;
   padding: 60px 40px;
+  width: 100%;
 }
 
 .sectionLabel {
@@ -31,8 +50,9 @@
 
 .grid {
   display: grid;
-  grid-template-columns: 1.4fr 1fr;
-  gap: 24px;
+  /* Improved for tablet: uses minmax to prevent squeezing */
+  grid-template-columns: minmax(0, 1.4fr) minmax(300px, 1fr);
+  gap: 32px;
 }
 
 /* POSTS */
@@ -47,7 +67,7 @@
   border-radius: 14px;
   border: 1px solid var(--border);
   padding: 20px 22px;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, transform 0.1s;
   cursor: pointer;
 }
 
@@ -96,6 +116,7 @@
   padding: 3px 10px;
 }
 
+/* Specific Tags */
 .tagBio  { background: rgba(0, 201, 167, 0.12); color: #00C9A7; }
 .tagMath { background: rgba(100, 130, 255, 0.12); color: #6482FF; }
 .tagChem { background: rgba(255, 167, 38, 0.12); color: #FFB300; }
@@ -214,6 +235,7 @@
   align-items: center;
   gap: 10px;
 }
+
 /* ONLINE COUNT */
 .chatHeaderText {
   flex: 1;
@@ -231,12 +253,8 @@
 }
 
 @keyframes blink {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.4;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 
 .onlineCount {
@@ -337,23 +355,15 @@
   background: var(--ink2);
   animation: typingBounce 1.2s ease-in-out infinite;
   display: inline-block;
+  will-change: transform;
 }
 
-.typingDots span:nth-child(2) {
-  animation-delay: 0.2s;
-}
-
-.typingDots span:nth-child(3) {
-  animation-delay: 0.4s;
-}
+.typingDots span:nth-child(2) { animation-delay: 0.2s; }
+.typingDots span:nth-child(3) { animation-delay: 0.4s; }
 
 @keyframes typingBounce {
-  0%, 80%, 100% {
-    transform: translateY(0);
-  }
-  40% {
-    transform: translateY(-5px);
-  }
+  0%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-5px); }
 }
 
 /* DELETE BUTTON */
@@ -383,43 +393,14 @@
   line-height: 1;
 }
 
-.msgBubbleWrap:hover .deleteBtn {
+/* Show button on hover OR keyboard focus */
+.msgBubbleWrap:hover .deleteBtn,
+.deleteBtn:focus {
   opacity: 1;
 }
 
 .deleteBtn:hover {
   color: var(--pulse);
-}
-
-/* EMOJI PICKER */
-.emojiPicker {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  padding: 10px 16px;
-  background: var(--card);
-  border-top: 1px solid var(--border);
-  max-width: 320px;
-}
-
-.emojiBtn {
-  background: none;
-  border: none;
-  font-size: 20px;
-  cursor: pointer;
-  border-radius: 6px;
-  padding: 4px;
-  transition: background 0.15s;
-  line-height: 1;
-}
-
-.emojiBtn:hover {
-  background: var(--surface2);
-}
-
-.attachActive {
-  background: rgba(255, 77, 109, 0.1) !important;
-  border-color: var(--pulse) !important;
 }
 
 /* LIGHTBOX */
@@ -442,58 +423,11 @@
   cursor: default;
 }
 
-.lightboxClose {
-  position: fixed;
-  top: 20px;
-  right: 24px;
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  color: #fff;
-  font-size: 20px;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.15s;
-  z-index: 1001;
-}
-
-.lightboxClose:hover {
-  background: rgba(255, 77, 109, 0.6);
-}
-
-/* ONBOARDING EXTRAS */
-.onboardingBtns {
-  display: flex;
-  gap: 10px;
-}
-
-.cancelBtn {
-  flex: 1;
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 50px;
-  padding: 13px;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--ink2);
-  cursor: pointer;
-  font-family: "DM Sans", sans-serif;
-  transition: border-color 0.2s;
-}
-
-.cancelBtn:hover {
-  border-color: var(--accent);
-}
-
-.allJoined {
-  text-align: center;
-  color: var(--ink2);
-  font-size: 14px;
-  padding: 20px 0;
+/* RESPONSIVE DESIGN */
+@media (max-width: 1024px) {
+  .grid {
+    gap: 20px;
+  }
 }
 
 @media (max-width: 800px) {
@@ -503,5 +437,9 @@
 
   .grid {
     grid-template-columns: 1fr;
+  }
+  
+  .sectionTitle {
+    font-size: 28px;
   }
 }
