@@ -216,7 +216,7 @@ export default function CommunityPage() {
               onClick={handleJoin}
               disabled={selected.length === 0}
             >
-              Join {selected.length > 0 ? `${selected.length} Community${selected.length > 1 ? "ies" : ""}` : "Communities"} →
+              Join {selected.length > 0 ? `${selected.length} Communit${selected.length > 1 ? "ies" : ""}` : "Communities"} →
             </button>
           </div>
         </main>
