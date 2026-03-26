@@ -31,7 +31,7 @@ export default function Navbar() {
       </Link>
 
       <div className={styles.navLinks}>
-        <Link href="/community">Community</Link>
+        <Link href="/dashboard">Dashboard</Link>
         <Link href="/subjects">Subjects</Link>
         <Link href="/resources">Resources</Link>
         <Link href="/ask-ai" className={styles.aiLink}>
