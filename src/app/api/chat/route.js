@@ -9,116 +9,107 @@ import cs from '@/data/computer-science_syllabus.json';
 import english from '@/data/english_syllabus.json';
 
 const syllabuses = {
-  business,
-  math,
-  physics,
-  chemistry,
-  'computer-science': cs,
-  english,
+  business,
+  math,
+  physics,
+  chemistry,
+  'computer-science': cs,
+  english,
 };
 
-// Initialise Firebase Admin only on the server
 function getAdminDb() {
-  if (getApps().length === 0) {
-    initializeApp({
-      credential: cert({
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-      }),
-    });
-  }
-  return getFirestore();
+  if (getApps().length === 0) {
+    initializeApp({
+      credential: cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      }),
+    });
+  }
+  return getFirestore();
 }
 
 export async function POST(request) {
-  try {
-    const { question, subject, marks, userId } = await request.json();
+  try {
+    const { question, subject, marks, userId } = await request.json();
 
-    const data = syllabuses[subject];
-    if (!data) {
-      return NextResponse.json({
-        reply: 'Subject not found. Choose: business, math, physics, chemistry, computer-science, english',
-      });
-    }
+    const data = syllabuses[subject];
+    if (!data) {
+      return NextResponse.json({
+        reply: 'Subject not found. Choose: business, math, physics, chemistry, computer-science, english',
+      });
+    }
 
-    const systemPrompt = `You are a Cambridge IGCSE ${data.name} (${data.code}) examiner and tutor.
+    const systemPrompt = `You are a Cambridge IGCSE ${data.name} (${data.code}) examiner and tutor.
 Syllabus content: ${data.syllabus.content}
 Topics: ${data.syllabus.topics?.map((t) => t.topicName).join(', ') || ''}
 Rules:
 - Answer based ONLY on the Cambridge IGCSE syllabus.
 - For ${marks || 'any'} marks, follow the Cambridge marking scheme format.
 - For 6+ marks, always include evaluation/judgement.
-- Be concise, student-friendly, and examiner-accurate.
+- Be concise, student-friendly, and examiner-accurate.`;
 
-Student question: ${question}`;
+    const apiKey = process.env.ANTHROPIC_API_KEY;
 
-    // Google Gemini API - Free tier model (gemini-1.5-flash-8b)
-    const apiKey = process.env.GEMINI_API_KEY;
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': apiKey,
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              { text: systemPrompt }
-            ]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.3,
-          maxOutputTokens: 1000,
-        }
-      }),
-    });
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001', // fast + cheap, great for tutoring
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: [
+          { role: 'user', content: question }
+        ],
+        temperature: 0.3,
+      }),
+    });
 
-    // Check if response is OK
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Gemini API error:', response.status, errorText);
-      return NextResponse.json({ 
-        reply: `AI service error: ${response.status}. Please make sure your Gemini API key is valid.` 
-      });
-    }
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Claude API error:', response.status, errorText);
+      return NextResponse.json({
+        reply: `AI service error: ${response.status}. Please check your Anthropic API key.`,
+      });
+    }
 
-    const result = await response.json();
-    
-    // Validate response structure
-    if (!result.candidates || !result.candidates[0] || !result.candidates[0].content) {
-      console.error('Invalid Gemini response structure:', result);
-      return NextResponse.json({ 
-        reply: 'Sorry, I received an invalid response. Please try again.' 
-      });
-    }
-    
-    const answer = result.candidates[0].content.parts[0].text;
+    const result = await response.json();
 
-    // Save to Firestore using Admin SDK (server-safe)
-    try {
-      const adminDb = getAdminDb();
-      await adminDb.collection('ai_chats').add({
-        userId: userId || 'anonymous',
-        subject,
-        question,
-        answer,
-        marks: marks || null,
-        timestamp: new Date(),
-      });
-    } catch (dbError) {
-      console.error('Firebase save error:', dbError);
-      // Non-fatal — still return the answer
-    }
+    if (!result.content || !result.content[0]) {
+      console.error('Invalid Claude response structure:', result);
+      return NextResponse.json({
+        reply: 'Sorry, I received an invalid response. Please try again.',
+      });
+    }
 
-    return NextResponse.json({ reply: answer, code: data.code });
-    
-  } catch (error) {
-    console.error('API Error:', error);
-    return NextResponse.json({ 
-      reply: `Error: ${error.message || 'Please try again.'}` 
-    }, { status: 500 });
-  }
+    const answer = result.content[0].text;
+
+    // Save to Firestore
+    try {
+      const adminDb = getAdminDb();
+      await adminDb.collection('ai_chats').add({
+        userId: userId || 'anonymous',
+        subject,
+        question,
+        answer,
+        marks: marks || null,
+        timestamp: new Date(),
+      });
+    } catch (dbError) {
+      console.error('Firebase save error:', dbError);
+    }
+
+    return NextResponse.json({ reply: answer, code: data.code });
+
+  } catch (error) {
+    console.error('API Error:', error);
+    return NextResponse.json({
+      reply: `Error: ${error.message || 'Please try again.'}`,
+    }, { status: 500 });
+  }
 }
