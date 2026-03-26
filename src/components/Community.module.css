@@ -1,31 +1,7 @@
-/* 1. The Global Sync: 
-  This ensures the module can see your website's main colors 
-*/
 .section {
-  /* Layout */
   max-width: 1100px;
   margin: 0 auto;
   padding: 60px 40px;
-  width: 100%;
-  
-  /* Fallback definitions in case globals fail to load */
-  --pulse: var(--pulse, #ff4d6d);
-  --ink: var(--ink, #1a1a1a);
-  --ink2: var(--ink2, #666666);
-  --card: var(--card, #ffffff);
-  --border: var(--border, #eeeeee);
-  --surface2: var(--surface2, #f9f9f9);
-  --accent: var(--accent, #9b7fd4);
-}
-
-/* 2. Typography Consistency */
-.sectionTitle {
-  font-family: "Syne", var(--font-sans, sans-serif);
-  font-size: 34px;
-  font-weight: 800;
-  letter-spacing: -1px;
-  margin-bottom: 10px;
-  color: var(--ink);
 }
 
 .sectionLabel {
@@ -37,6 +13,15 @@
   margin-bottom: 10px;
 }
 
+.sectionTitle {
+  font-family: "Syne", sans-serif;
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  margin-bottom: 10px;
+  color: var(--ink);
+}
+
 .sectionSub {
   font-size: 16px;
   color: var(--ink2);
@@ -44,107 +29,229 @@
   margin-bottom: 40px;
 }
 
-/* 3. Grid & Layout */
 .grid {
   display: grid;
   grid-template-columns: 1.4fr 1fr;
   gap: 24px;
 }
 
+/* POSTS */
 .posts {
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
 
-/* 4. Cards (Styled to match standard site containers) */
-.postCard, .sidebarCard {
+.postCard {
   background: var(--card);
   border-radius: 14px;
   border: 1px solid var(--border);
   padding: 20px 22px;
-  transition: all 0.2s ease-in-out;
+  transition: border-color 0.2s;
+  cursor: pointer;
 }
 
 .postCard:hover {
-  border-color: var(--accent);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border-color: rgba(155, 127, 212, 0.35);
 }
 
-/* 5. Interactive Elements (Buttons & Inputs) */
-.searchInput {
-  width: 100%;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 10px 14px;
+.postHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.postUser {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.postTime {
+  font-size: 11px;
+  color: var(--ink2);
+}
+
+.postQ {
   font-size: 14px;
+  font-weight: 600;
   color: var(--ink);
-  outline: none;
-  transition: border-color 0.2s;
+  margin-bottom: 8px;
+  line-height: 1.5;
 }
 
-.searchInput:focus {
-  border-color: var(--pulse);
+.tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
-.searchToggle {
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  width: 36px;
-  height: 36px;
-  cursor: pointer;
+.tag {
+  background: var(--tag-bg);
+  color: var(--tag-text);
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 50px;
+  padding: 3px 10px;
+}
+
+.tagBio  { background: rgba(0, 201, 167, 0.12); color: #00C9A7; }
+.tagMath { background: rgba(100, 130, 255, 0.12); color: #6482FF; }
+.tagChem { background: rgba(255, 167, 38, 0.12); color: #FFB300; }
+
+.postFooter {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.pfItem {
+  font-size: 12px;
+  color: var(--ink2);
+}
+
+.resolved {
+  color: #00C9A7;
+}
+
+/* AVATARS */
+.avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: 0.15s;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
 }
 
-.searchToggle:hover {
-  background: var(--surface2);
-  border-color: var(--pulse);
+.avatarSm {
+  width: 30px;
+  height: 30px;
+  font-size: 11px;
 }
 
-.cancelBtn {
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 50px;
-  padding: 13px;
-  font-size: 15px;
+.av1 { background: rgba(255, 77, 109, 0.15); color: var(--pulse); }
+.av2 { background: rgba(0, 201, 167, 0.15); color: #00C9A7; }
+.av3 { background: rgba(100, 130, 255, 0.15); color: #6482FF; }
+.av4 { background: rgba(255, 167, 38, 0.15); color: #FFB300; }
+
+.cardName {
+  font-size: 13px;
   font-weight: 600;
-  color: var(--ink2);
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.cancelBtn:hover {
-  border-color: var(--accent);
   color: var(--ink);
 }
 
-/* 6. Status Indicators */
-.onlineDot {
-  display: inline-block;
+.cardSub {
+  font-size: 11px;
+  color: var(--ink2);
+}
+
+/* SIDEBAR */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sidebarCard {
+  background: var(--card);
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  padding: 20px;
+}
+
+.sbTitle {
+  font-family: "Syne", sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 14px;
+  color: var(--ink);
+}
+
+.subjectRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.subjectRow:last-child {
+  border-bottom: none;
+}
+
+.subjDot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
+  display: inline-block;
+  margin-right: 7px;
+}
+
+.subjName {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.subjCount {
+  font-size: 12px;
+  color: var(--ink2);
+}
+
+.contributorList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.contributor {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ONLINE COUNT */
+.chatHeaderText {
+  flex: 1;
+}
+
+.onlineDot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
   background: #00C9A7;
-  margin-right: 6px;
-  animation: blink 2s infinite;
+  margin: 0 5px 0 10px;
+  vertical-align: middle;
+  animation: blink 2s ease-in-out infinite;
 }
 
 @keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
 }
 
-/* 7. Responsive Fix */
+.onlineCount {
+  font-size: 11px;
+  color: #00C9A7;
+  font-weight: 600;
+}
+
 @media (max-width: 800px) {
-  .grid {
-    grid-template-columns: 1fr;
-  }
   .section {
     padding: 40px 20px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
   }
 }
