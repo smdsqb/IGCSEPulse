@@ -1,0 +1,26 @@
+{
+  "code": "0500",
+  "name": "First Language English",
+  "examBoard": "Cambridge IGCSE",
+  "syllabus": {
+    "content": "Reading comprehension, directed writing, composition, writer's effect",
+    "topics": [
+      {"topicName": "Reading", "subtopics": ["Comprehension", "Writer's effect", "Summary", "Inference"]},
+      {"topicName": "Writing", "subtopics": ["Directed writing", "Composition", "Audience", "Purpose", "Register"]}
+    ]
+  },
+  "paperStructure": {
+    "paper1": {"name": "Reading", "duration": "2h", "marks": 80},
+    "paper2": {"name": "Directed Writing & Composition", "duration": "2h", "marks": 80}
+  },
+  "writingFormats": {
+    "letter": "Address, salutation, introduction, body, conclusion, sign-off",
+    "report": "Title, introduction, subheadings, findings, recommendations",
+    "article": "Headline, introduction, paragraphs, conclusion",
+    "speech": "Greeting, introduction, main points, conclusion"
+  },
+  "examinerReports": {
+    "commonMistakes": ["Not answering question", "Wrong format", "Inconsistent tone", "Poor structure", "No evidence from text"],
+    "examinerTips": ["Identify audience and purpose first", "Plan before writing", "Use PEE structure", "Vary vocabulary", "Proofread for errors"]
+  }
+}
