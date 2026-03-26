@@ -175,3 +175,167 @@
     padding: 30px 24px;
   }
 }
+/* Add these new styles at the end of your AiSection.module.css */
+
+/* Active Chat Styles */
+.activeChat {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.subjectSelector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.subjectBtn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 40px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: "DM Sans", sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+  min-width: 70px;
+}
+
+.subjectBtn span {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.subjectBtn small {
+  font-size: 9px;
+  color: var(--ink2);
+}
+
+.subjectBtn:hover {
+  border-color: var(--pulse);
+  background: rgba(255, 77, 109, 0.05);
+}
+
+.subjectBtn.active {
+  border-color: var(--pulse);
+  background: rgba(255, 77, 109, 0.1);
+}
+
+.subjectBtn.active span {
+  color: var(--pulse);
+}
+
+.marksSelect {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--ink);
+  font-family: "DM Sans", sans-serif;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.questionInput {
+  width: 100%;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--ink);
+  font-family: "DM Sans", sans-serif;
+  font-size: 13px;
+  resize: vertical;
+  outline: none;
+}
+
+.questionInput:focus {
+  border-color: var(--pulse);
+}
+
+.sendBtn {
+  background: var(--pulse);
+  color: white;
+  border: none;
+  border-radius: 40px;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.sendBtn:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.sendBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.answerBox {
+  margin-top: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.answerHeader {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--pulse);
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.answerContent {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.answerContent p {
+  margin-bottom: 8px;
+}
+
+.copyBtn {
+  margin-top: 10px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 11px;
+  cursor: pointer;
+  color: var(--ink2);
+  transition: all 0.2s;
+}
+
+.copyBtn:hover {
+  border-color: var(--pulse);
+  color: var(--pulse);
+}
+
+.tipsBox {
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: rgba(255, 77, 109, 0.08);
+  border-radius: 8px;
+  font-size: 11px;
+  color: var(--ink2);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
