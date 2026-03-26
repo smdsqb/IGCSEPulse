@@ -49,28 +49,35 @@ Rules:
 - Answer based ONLY on the Cambridge IGCSE syllabus.
 - For ${marks || 'any'} marks, follow the Cambridge marking scheme format.
 - For 6+ marks, always include evaluation/judgement.
-- Be concise, student-friendly, and examiner-accurate.`;
+- Be concise, student-friendly, and examiner-accurate.
 
-    const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+Student question: ${question}`;
+
+    // Google Gemini API - Free tier
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'deepseek-chat',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: question },
+        contents: [
+          {
+            parts: [
+              { text: systemPrompt }
+            ]
+          }
         ],
-        temperature: 0.3,
+        generationConfig: {
+          temperature: 0.3,
+          maxOutputTokens: 1000,
+        }
       }),
     });
 
     // Check if response is OK
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('DeepSeek API error:', response.status, errorText);
+      console.error('Gemini API error:', response.status, errorText);
       return NextResponse.json({ 
         reply: `AI service error: ${response.status}. Please try again.` 
       });
@@ -79,14 +86,14 @@ Rules:
     const result = await response.json();
     
     // Validate response structure
-    if (!result.choices || !result.choices[0] || !result.choices[0].message) {
-      console.error('Invalid DeepSeek response structure:', result);
+    if (!result.candidates || !result.candidates[0] || !result.candidates[0].content) {
+      console.error('Invalid Gemini response structure:', result);
       return NextResponse.json({ 
         reply: 'Sorry, I received an invalid response. Please try again.' 
       });
     }
     
-    const answer = result.choices[0].message.content;
+    const answer = result.candidates[0].content.parts[0].text;
 
     // Save to Firestore using Admin SDK (server-safe)
     try {
