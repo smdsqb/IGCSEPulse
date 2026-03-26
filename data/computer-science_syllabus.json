@@ -1,0 +1,30 @@
+{
+  "code": "0478",
+  "name": "Computer Science",
+  "examBoard": "Cambridge IGCSE",
+  "syllabus": {
+    "content": "Data representation, hardware, software, internet, algorithms, programming, databases",
+    "topics": [
+      {"topicName": "Data representation", "subtopics": ["Binary", "Hexadecimal", "Images", "Sound", "Compression"]},
+      {"topicName": "Hardware", "subtopics": ["CPU", "Input devices", "Output devices", "Storage"]},
+      {"topicName": "Software", "subtopics": ["System software", "Application software", "Programming languages"]},
+      {"topicName": "Algorithms", "subtopics": ["Flowcharts", "Pseudocode", "Searching", "Sorting"]},
+      {"topicName": "Programming", "subtopics": ["Variables", "Selection", "Iteration", "Arrays", "Functions"]},
+      {"topicName": "Databases", "subtopics": ["SQL", "Primary keys", "Relationships"]}
+    ]
+  },
+  "paperStructure": {
+    "paper1": {"name": "Computer Systems", "duration": "1h 45m", "marks": 75},
+    "paper2": {"name": "Algorithms & Programming", "duration": "1h 45m", "marks": 75}
+  },
+  "commandWords": {
+    "describe": "Give detailed account",
+    "explain": "Give reasons",
+    "trace": "Show step-by-step execution",
+    "write": "Produce code or algorithm"
+  },
+  "examinerReports": {
+    "commonMistakes": ["Binary conversion errors", "Trace table mistakes", "SQL syntax errors", "No comments in code"],
+    "examinerTips": ["Practice trace tables", "Write pseudocode first", "Test algorithms", "Learn SQL properly", "Show all working"]
+  }
+}
