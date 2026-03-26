@@ -67,8 +67,26 @@ Rules:
       }),
     });
 
+    // Check if response is OK
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('DeepSeek API error:', response.status, errorText);
+      return NextResponse.json({ 
+        reply: `AI service error: ${response.status}. Please try again.` 
+      });
+    }
+
     const result = await response.json();
-    const answer = result.choices?.[0]?.message?.content ?? 'No response from AI.';
+    
+    // Validate response structure
+    if (!result.choices || !result.choices[0] || !result.choices[0].message) {
+      console.error('Invalid DeepSeek response structure:', result);
+      return NextResponse.json({ 
+        reply: 'Sorry, I received an invalid response. Please try again.' 
+      });
+    }
+    
+    const answer = result.choices[0].message.content;
 
     // Save to Firestore using Admin SDK (server-safe)
     try {
@@ -87,8 +105,11 @@ Rules:
     }
 
     return NextResponse.json({ reply: answer, code: data.code });
+    
   } catch (error) {
     console.error('API Error:', error);
-    return NextResponse.json({ reply: 'Error. Please try again.' }, { status: 500 });
+    return NextResponse.json({ 
+      reply: `Error: ${error.message || 'Please try again.'}` 
+    }, { status: 500 });
   }
 }
