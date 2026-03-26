@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/src/lib/firebase';
+import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import business from '@/src/data/business_syllabus.json';
-import math from '@/src/data/math_syllabus.json';
-import physics from '@/src/data/physics_syllabus.json';
-import chemistry from '@/src/data/chemistry_syllabus.json';
-import cs from '@/src/data/computer-science_syllabus.json';
-import english from '@/src/data/english_syllabus.json';
+import business from '@/data/business_syllabus.json';
+import math from '@/data/math_syllabus.json';
+import physics from '@/data/physics_syllabus.json';
+import chemistry from '@/data/chemistry_syllabus.json';
+import cs from '@/data/computer-science_syllabus.json';
+import english from '@/data/english_syllabus.json';
 
 const subjects = { business, math, physics, chemistry, 'computer-science': cs, english };
 
@@ -45,7 +45,7 @@ export async function POST(request) {
     const result = await response.json();
     const answer = result.choices[0].message.content;
     
-    // Save to Firebase using your existing db
+    // Save to Firebase
     try {
       await addDoc(collection(db, 'ai_chats'), {
         userId: userId || 'anonymous',
@@ -57,7 +57,6 @@ export async function POST(request) {
       });
     } catch (dbError) {
       console.error('Firebase save error:', dbError);
-      // Don't fail the request if Firebase save fails
     }
     
     return NextResponse.json({ reply: answer, code: data.code });
