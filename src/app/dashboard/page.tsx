@@ -80,7 +80,7 @@ export default function DashboardPage() {
               <div className={styles.cardStats}>
                 <span>6 subjects</span>
                 <span>·</span>
-                <span>Powered by DeepSeek</span>
+                <span>Powered by Groq API</span>
                 <span>·</span>
                 <span className={styles.statGreen}>Live now</span>
               </div>
