@@ -70,7 +70,7 @@ export default function AiSection() {
           >
             ✦ {showChat ? "Hide" : "Ask AI"}
             {!showChat && (
-              <span className={styles.askAiBadge}>Powered by DeepSeek</span>
+              <span className={styles.askAiBadge}>Powered by Groq</span>
             )}
           </button>
         </div>
@@ -88,7 +88,7 @@ export default function AiSection() {
                 <div className={`${styles.chatAvatar} ${styles.caAi}`}>✦</div>
                 <div className={`${styles.chatBubble} ${styles.cbAi}`}>
                   For 6-mark questions:{" "}
-                  <strong>Point → Evidence → Explain → Evaluate.</strong> Clear
+                  <strong>Knowledge → Application → Analysis → Evaluation</strong> Clear
                   statement, back with data, explain the link, evaluate impact. Aim
                   for 2–3 developed points.
                 </div>
