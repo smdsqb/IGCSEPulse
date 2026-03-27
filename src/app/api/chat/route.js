@@ -32,13 +32,11 @@ function getAdminDb() {
 
 export async function POST(request) {
   try {
-    const { question, subject, marks, userId } = await request.json();
+    const { question, subject, marks, userId, sessionId, history = [] } = await request.json();
 
     const data = syllabuses[subject];
     if (!data) {
-      return NextResponse.json({
-        reply: 'Subject not found. Choose: business, math, physics, chemistry, computer-science, english',
-      });
+      return NextResponse.json({ reply: 'Subject not found.' });
     }
 
     const systemPrompt = `You are a Cambridge IGCSE ${data.name} (${data.code}) examiner and tutor.
@@ -48,66 +46,65 @@ Rules:
 - Answer based ONLY on the Cambridge IGCSE syllabus.
 - For ${marks || 'any'} marks, follow the Cambridge marking scheme format.
 - For 6+ marks, always include evaluation/judgement.
-- Be concise, student-friendly, and examiner-accurate.`;
+- Be concise, student-friendly, and examiner-accurate.
+- You have access to the conversation history. Maintain context across messages.`;
 
-    const apiKey = process.env.GROQ_API_KEY;
+    // Build messages array with history for multi-turn
+    const chatMessages = [
+      { role: 'system', content: systemPrompt },
+      ...history.slice(-6), // last 6 messages for context
+      { role: 'user', content: question },
+    ];
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
+        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
       },
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
         max_tokens: 1000,
         temperature: 0.3,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: question }
-        ],
+        messages: chatMessages,
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Groq API error:', response.status, errorText);
-      return NextResponse.json({
-        reply: `AI service error: ${response.status}. Please try again.`,
-      });
+      return NextResponse.json({ reply: `AI service error: ${response.status}. Please try again.` });
     }
 
     const result = await response.json();
 
-    if (!result.choices || !result.choices[0]) {
-      console.error('Invalid Groq response structure:', result);
-      return NextResponse.json({
-        reply: 'Sorry, I received an invalid response. Please try again.',
-      });
+    if (!result.choices?.[0]) {
+      console.error('Invalid Groq response:', result);
+      return NextResponse.json({ reply: 'Sorry, I received an invalid response. Please try again.' });
     }
 
     const answer = result.choices[0].message.content;
 
+    // Note: messages are now saved by the client directly to Firestore
+    // We only log here for server-side audit if needed
     try {
-      const adminDb = getAdminDb();
-      await adminDb.collection('ai_chats').add({
-        userId: userId || 'anonymous',
-        subject,
-        question,
-        answer,
-        marks: marks || null,
-        timestamp: new Date(),
-      });
+      if (userId && userId !== 'anonymous' && sessionId) {
+        const adminDb = getAdminDb();
+        await adminDb
+          .collection('ai_chats')
+          .doc(userId)
+          .collection('sessions')
+          .doc(sessionId)
+          .set({ lastActivity: new Date() }, { merge: true });
+      }
     } catch (dbError) {
-      console.error('Firebase save error:', dbError);
+      console.error('Firebase update error:', dbError);
     }
 
     return NextResponse.json({ reply: answer, code: data.code });
 
   } catch (error) {
     console.error('API Error:', error);
-    return NextResponse.json({
-      reply: `Error: ${error.message || 'Please try again.'}`,
-    }, { status: 500 });
+    return NextResponse.json({ reply: `Error: ${error.message || 'Please try again.'}` }, { status: 500 });
   }
 }
