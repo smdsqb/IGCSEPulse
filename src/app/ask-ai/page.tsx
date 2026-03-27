@@ -106,6 +106,31 @@ function inlineMd(text: string): React.ReactNode {
   });
 }
 
+function extractRawPDFText(binary: string): string {
+  const textParts: string[] = [];
+  const btEtRegex = /BT([\s\S]*?)ET/g;
+  let btMatch;
+  while ((btMatch = btEtRegex.exec(binary)) !== null) {
+    const block = btMatch[1];
+    const tjRegex = /\(((?:[^()\\]|\\[\s\S])*)\)\s*(?:Tj|'|")/g;
+    const tjArrayRegex = /\[((?:[^\[\]]|\((?:[^()\\]|\\[\s\S])*\))*)\]\s*TJ/g;
+    let m;
+    while ((m = tjRegex.exec(block)) !== null) {
+      const t = m[1].replace(/\\n/g,' ').replace(/\\r/g,' ').replace(/\\t/g,' ').replace(/\\(\d{3})/g,(_,o)=>String.fromCharCode(parseInt(o,8))).replace(/\\(.)/g,'$1');
+      if (t.trim()) textParts.push(t);
+    }
+    while ((m = tjArrayRegex.exec(block)) !== null) {
+      const strRegex = /\(((?:[^()\\]|\\[\s\S])*)\)/g;
+      let s;
+      while ((s = strRegex.exec(m[1])) !== null) {
+        const t = s[1].replace(/\\n/g,' ').replace(/\\r/g,' ').replace(/\\t/g,' ').replace(/\\(\d{3})/g,(_,o)=>String.fromCharCode(parseInt(o,8))).replace(/\\(.)/g,'$1');
+        if (t.trim()) textParts.push(t);
+      }
+    }
+  }
+  return textParts.join(' ').replace(/\s+/g,' ').trim();
+}
+
 // ── Extract text from file client-side ──────────────────────────────────────
 async function extractFileText(file: File): Promise<string> {
   // Plain text / code files
@@ -118,10 +143,7 @@ async function extractFileText(file: File): Promise<string> {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      const res = await fetch('/api/extract-pdf', {
-        method: 'POST',
-        body: formData,
-      });
+      const res = await fetch('/api/extract-pdf', { method: 'POST', body: formData });
       const { text } = await res.json();
       return text || "[Could not extract text from PDF]";
     } catch (err) {
