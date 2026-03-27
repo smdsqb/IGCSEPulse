@@ -125,7 +125,7 @@ async function extractFileText(file: File): Promise<string> {
       for (let p = 1; p <= Math.min(pdf.numPages, 10); p++) {
         const page = await pdf.getPage(p);
         const content = await page.getTextContent();
-        fullText += content.items.map((item: { str?: string }) => item.str ?? "").join(" ") + "\n";
+        fullText += content.items.map((item) => ('str' in item ? item.str ?? "" : "")).join(" ") + "\n";
       }
       return fullText.trim() || "[Could not extract text from PDF]";
     } catch (err) {
