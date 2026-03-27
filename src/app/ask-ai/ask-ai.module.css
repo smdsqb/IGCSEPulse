@@ -441,3 +441,167 @@
   transition: border-color 0.2s, color 0.2s;
 }
 .newChatBtn:hover { border-color: var(--pulse); color: var(--pulse); }
+
+/* ── FILE ATTACHMENT ─────────────────────────────────────────────────── */
+.hiddenFile { display: none; }
+
+.attachBtn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  width: 44px; height: 44px;
+  font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 0.15s, background 0.15s;
+}
+.attachBtn:hover { border-color: var(--accent); }
+.attachBtnActive { border-color: var(--pulse) !important; background: rgba(255,77,109,0.08) !important; }
+
+.filePreviewBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  background: var(--surface2);
+  border-top: 1px solid var(--border);
+}
+.filePreviewThumb {
+  width: 36px; height: 36px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.filePreviewIcon { font-size: 24px; flex-shrink: 0; }
+.filePreviewName {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.filePreviewSize { font-size: 11px; color: var(--ink2); flex-shrink: 0; }
+.filePreviewRemove {
+  background: none;
+  border: none;
+  color: var(--ink2);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: color 0.15s;
+  flex-shrink: 0;
+}
+.filePreviewRemove:hover { color: var(--pulse); }
+
+/* Attached file/image in message bubble */
+.attachedImage {
+  max-width: 100%;
+  max-height: 220px;
+  border-radius: 8px;
+  display: block;
+  margin-bottom: 6px;
+  object-fit: cover;
+  cursor: pointer;
+}
+.attachedFile {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  color: var(--ink2);
+  text-decoration: none;
+  margin-bottom: 6px;
+  transition: border-color 0.15s;
+}
+.attachedFile:hover { border-color: var(--accent); color: var(--ink); }
+
+/* ── MARKDOWN RENDERING ──────────────────────────────────────────────── */
+.mdPara {
+  margin-bottom: 8px;
+  line-height: 1.65;
+}
+.mdPara:last-child { margin-bottom: 0; }
+
+.mdHeading {
+  font-family: "Syne", sans-serif;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 12px 0 6px;
+  line-height: 1.3;
+}
+h3.mdHeading { font-size: 15px; }
+h4.mdHeading { font-size: 14px; }
+h5.mdHeading { font-size: 13px; }
+
+.mdList {
+  margin: 6px 0 8px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mdList li { font-size: 14px; line-height: 1.6; }
+
+.inlineCode {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 12px;
+  font-family: "Courier New", monospace;
+  color: var(--pulse);
+}
+
+/* ── CODE BLOCK (CS syntax highlighting) ────────────────────────────── */
+.codeBlock {
+  background: #0D0B14;
+  border: 1px solid rgba(155,127,212,0.2);
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 8px 0;
+  position: relative;
+}
+.codeLang {
+  background: rgba(155,127,212,0.15);
+  color: #9B7FD4;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-bottom: 1px solid rgba(155,127,212,0.15);
+}
+.codeBlock pre {
+  margin: 0;
+  padding: 14px 16px;
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.codeBlock code {
+  font-family: "Courier New", monospace;
+  color: #E0D7FF;
+  white-space: pre;
+}
+.copyCode {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  background: rgba(255,255,255,0.08);
+  border: none;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 11px;
+  color: #9B7FD4;
+  cursor: pointer;
+  font-family: "DM Sans", sans-serif;
+  transition: background 0.15s;
+}
+.copyCode:hover { background: rgba(255,255,255,0.15); }
