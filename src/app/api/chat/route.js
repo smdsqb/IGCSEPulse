@@ -43,7 +43,8 @@ export async function POST(request) {
 Syllabus content: ${data.syllabus.content}
 Topics: ${data.syllabus.topics?.map((t) => t.topicName).join(', ') || ''}
 Rules:
-- Answer based ONLY on the Cambridge IGCSE syllabus.
+- Answer based on the Cambridge IGCSE syllabus and any file content the student shares.
+- When the user uploads a file or image, read its content carefully and help them with it in the context of IGCSE ${data.name}.
 - For ${marks || 'any'} marks, follow the Cambridge marking scheme format.
 - For 6+ marks, always include evaluation/judgement.
 - Be concise, student-friendly, and examiner-accurate.
