@@ -3,30 +3,112 @@
   "name": "Chemistry",
   "examBoard": "Cambridge IGCSE",
   "syllabus": {
-    "content": "States of matter, atoms, bonding, stoichiometry, electrochemistry, reactions, acids/bases, periodic table, metals, organic chemistry",
+    "content": "States of matter, atoms, elements and compounds, stoichiometry, electrochemistry, chemical energetics, chemical reactions, acids, bases and salts, the Periodic Table, metals, chemistry of the environment, organic chemistry, experimental techniques and chemical analysis",
     "topics": [
-      {"topicName": "States of matter", "subtopics": ["Solids", "Liquids", "Gases", "Diffusion"]},
-      {"topicName": "Atoms and bonding", "subtopics": ["Atomic structure", "Ionic bonding", "Covalent bonding", "Metallic bonding"]},
-      {"topicName": "Stoichiometry", "subtopics": ["Moles", "Empirical formula", "Concentration", "Gas volumes"]},
-      {"topicName": "Chemical reactions", "subtopics": ["Rate of reaction", "Equilibrium", "Redox"]},
-      {"topicName": "Acids and bases", "subtopics": ["Properties", "pH scale", "Salts", "Titration"]},
-      {"topicName": "Periodic table", "subtopics": ["Group I", "Group VII", "Group VIII", "Transition elements"]},
-      {"topicName": "Organic chemistry", "subtopics": ["Alkanes", "Alkenes", "Alcohols", "Polymers"]}
+      {
+        "topicName": "States of matter",
+        "subtopics": [
+          "1.1 Solids, liquids and gases: Molecular structures and property comparisons",
+          "1.2 Diffusion: Impact of relative molecular mass and temperature on gas particles"
+        ]
+      },
+      {
+        "topicName": "Atoms, elements and compounds",
+        "subtopics": [
+          "2.1 Atomic structure and the Periodic Table: Protons, neutrons, electrons, and isotopes",
+          "2.2 Ions and ionic bonds: Formation of positive and negative ions",
+          "2.3 Simple molecules and covalent bonds: Dot-and-cross diagrams and multiple bonds",
+          "2.4 Giant covalent structures: Properties of graphite, diamond, and silicon(IV) oxide",
+          "2.5 Metallic bonding: Lattice of positive ions and 'sea' of delocalised electrons"
+        ]
+      },
+      {
+        "topicName": "Stoichiometry",
+        "subtopics": [
+          "3.1 Formulae: Deducing formulae from compound names",
+          "3.2 Relative masses of atoms and molecules: Ar and Mr calculations",
+          "3.3 The mole and the Avogadro constant: Using L = 6.02 x 10^23",
+          "3.4 Amounts of substance: Reacting masses, gas volumes (24dm^3 at r.t.p), and concentrations",
+          "3.5 Percentage composition, yield and purity: Practical calculation in chemistry"
+        ]
+      },
+      {
+        "topicName": "Chemical reactions",
+        "subtopics": [
+          "6.1 Physical and chemical changes: Reversibility and identification",
+          "6.2 Rate of reaction: Collision theory (concentration, temperature, surface area, and catalysts)",
+          "6.3 Reversible reactions and equilibrium: Le Chatelier’s principle (pressure, temperature, and concentration)",
+          "6.4 Redox: Oxidation and reduction in terms of oxygen gain/loss and electron transfer"
+        ]
+      },
+      {
+        "topicName": "Acids, bases and salts",
+        "subtopics": [
+          "7.1 The characteristic properties of acids and bases: pH scale and indicators",
+          "7.2 Preparation of salts: Methods including titration and use of excess insoluble base",
+          "7.3 Identification of ions and gases: Qualitative analysis using flame tests and chemical reagents"
+        ]
+      },
+      {
+        "topicName": "Organic chemistry",
+        "subtopics": [
+          "11.1 Formulae, functional groups and terminology: Homologous series",
+          "11.2 Alkanes: Substitution reactions with chlorine",
+          "11.3 Alkenes: Addition reactions and catalytic cracking",
+          "11.4 Alcohols: Ethanol production via fermentation and catalytic addition of steam",
+          "11.5 Carboxylic acids: Reactions of ethanoic acid",
+          "11.6 Polymers: Addition and condensation polymerisation (polyesters and polyamides)"
+        ]
+      }
     ]
   },
   "paperStructure": {
-    "paper2": {"name": "Multiple Choice Extended", "duration": "45m", "marks": 40},
-    "paper4": {"name": "Theory Extended", "duration": "1h 15m", "marks": 80},
-    "paper6": {"name": "Alternative to Practical", "duration": "1h", "marks": 40}
+    "paper2": {
+      "name": "Multiple Choice (Extended)",
+      "duration": "45m",
+      "marks": 40,
+      "weighting": "30%",
+      "details": "40 multiple-choice questions based on the Extended syllabus content [cite: 5]"
+    },
+    "paper4": {
+      "name": "Theory (Extended)",
+      "duration": "1h 15m",
+      "marks": 80,
+      "weighting": "50%",
+      "details": "Short-answer and structured questions; requires knowledge of both Core and Supplement content [cite: 5]"
+    },
+    "paper6": {
+      "name": "Alternative to Practical",
+      "duration": "1h",
+      "marks": 40,
+      "weighting": "20%",
+      "details": "Tests experimental skills and qualitative analysis in a written format [cite: 5]"
+    }
   },
   "commandWords": {
-    "define": "Give exact meaning",
-    "balance": "Balance equation",
-    "predict": "Suggest based on knowledge",
-    "explain": "Give reasons"
+    "define": "Give precise meaning of a technical term [cite: 9]",
+    "state": "Express in clear terms [cite: 9]",
+    "describe": "State the points of a topic; give characteristics and main features [cite: 9]",
+    "explain": "Give reasons or make relationships between things evident [cite: 9]",
+    "calculate": "Work out from given facts, figures or information [cite: 9]",
+    "deduce": "Draw a conclusion from the information provided [cite: 9]",
+    "predict": "Suggest what may happen based on available information [cite: 9]"
   },
   "examinerReports": {
-    "commonMistakes": ["Unbalanced equations", "No state symbols", "Mole calculation errors", "Wrong ion identification"],
-    "examinerTips": ["Always balance equations", "Include state symbols", "Show all calculation steps", "Learn ion tests", "Know reactivity series"]
+    "commonMistakes": [
+      "Missing state symbols (s, l, g, aq) when explicitly requested in equations [cite: 1, 10]",
+      "Confusing 'addition' and 'condensation' polymerisation [cite: 10]",
+      "Incorrect spelling of chemical names (e.g., confusing 'chlorine' with 'chloride')",
+      "Failure to show clear working steps in multi-mark stoichiometry calculations [cite: 11]",
+      "Drawing covalent dot-and-cross diagrams without showing the inner electron shells if requested",
+      "Inaccurate gas test results (e.g., stating hydrogen 'extinguishes' a splint rather than 'pops') [cite: 8]"
+    ],
+    "examinerTips": [
+      "Use the provided Periodic Table to verify atomic numbers and relative atomic masses [cite: 12]",
+      "Ensure chemical equations are always balanced, even if not specifically asked [cite: 10]",
+      "In qualitative analysis, specify the colour change (e.g., 'purple to colourless' for potassium manganate(VII)) rather than just 'decolourises' [cite: 8]",
+      "For equilibrium questions, always link the shift in position to the specific reason (e.g., 'fewer moles of gas on the left') [cite: 11]",
+      "In Paper 6, use precise apparatus names like 'volumetric pipette' or 'burette' for accurate measurement [cite: 12]"
+    ]
   }
 }
