@@ -605,3 +605,12 @@ h5.mdHeading { font-size: 13px; }
   transition: background 0.15s;
 }
 .copyCode:hover { background: rgba(255,255,255,0.15); }
+
+/* ── EXTRACTING STATE ────────────────────────────────────────────────── */
+.extractingText {
+  font-size: 13px;
+  color: var(--ink2);
+  font-style: italic;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
