@@ -1,92 +1,160 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
 import {
   collection,
   query,
-  where,
   orderBy,
   onSnapshot,
+  addDoc,
+  setDoc,
+  doc,
+  serverTimestamp,
   Timestamp,
 } from "firebase/firestore";
 import Navbar from "@/components/Navbar";
 import styles from "./ask-ai.module.css";
 
 const SUBJECTS = [
-  { id: "business",        name: "Business Studies", code: "0450", icon: "📊" },
-  { id: "math",            name: "Mathematics",       code: "0580", icon: "📐" },
-  { id: "physics",         name: "Physics",           code: "0625", icon: "⚡" },
-  { id: "chemistry",       name: "Chemistry",         code: "0620", icon: "🧪" },
-  { id: "computer-science",name: "Computer Science",  code: "0478", icon: "💻" },
-  { id: "english",         name: "English",           code: "0500", icon: "📖" },
+  { id: "business",         name: "Business Studies", code: "0450", icon: "📊" },
+  { id: "math",             name: "Mathematics",       code: "0580", icon: "📐" },
+  { id: "physics",          name: "Physics",           code: "0625", icon: "⚡" },
+  { id: "chemistry",        name: "Chemistry",         code: "0620", icon: "🧪" },
+  { id: "computer-science", name: "Computer Science",  code: "0478", icon: "💻" },
+  { id: "english",          name: "English",           code: "0500", icon: "📖" },
 ];
 
-const MARKS = ["", "2", "4", "6", "8", "10", "12"];
+const MARKS = ["2", "4", "6", "8", "10", "12"];
 
-interface ChatHistory {
+interface Message {
+  id?: string;
+  role: "user" | "ai";
+  text: string;
+  marks?: string | null;
+  timestamp?: Timestamp | null;
+}
+
+interface Session {
   id: string;
   subject: string;
-  question: string;
-  answer: string;
-  marks: number | null;
+  firstQuestion: string;
   timestamp: Timestamp | null;
 }
 
-interface Message {
-  role: "user" | "ai";
-  text: string;
-  subject?: string;
-  marks?: string;
+function genId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
 export default function AskAiPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
 
-  const [subject, setSubject]     = useState("business");
-  const [marks, setMarks]         = useState("");
-  const [question, setQuestion]   = useState("");
-  const [sending, setSending]     = useState(false);
-  const [messages, setMessages]   = useState<Message[]>([]);
-  const [history, setHistory]     = useState<ChatHistory[]>([]);
-  const [showHistory, setShowHistory] = useState(false);
+  const [subject, setSubject]             = useState("business");
+  const [marks, setMarks]                 = useState("");
+  const [question, setQuestion]           = useState("");
+  const [sending, setSending]             = useState(false);
+  const [messages, setMessages]           = useState<Message[]>([]);
+  const [sessionId, setSessionId]         = useState<string>(genId());
+  const [sessions, setSessions]           = useState<Record<string, Session[]>>({});
+  const [openSubjects, setOpenSubjects]   = useState<Record<string, boolean>>({});
+  const [activeSession, setActiveSession] = useState<string | null>(null);
+
   const bottomRef = useRef<HTMLDivElement>(null);
+  const unsubRef  = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (!loading && !user) router.push("/login");
   }, [user, loading, router]);
 
-  // Load chat history from Firestore
+  // Load all sessions grouped by subject
   useEffect(() => {
     if (!user) return;
     const q = query(
-      collection(db, "ai_chats"),
-      where("userId", "==", user.uid),
+      collection(db, "ai_chats", user.uid, "sessions"),
       orderBy("timestamp", "desc")
     );
     const unsub = onSnapshot(q, (snap) => {
-      setHistory(snap.docs.map((d) => ({ id: d.id, ...d.data() } as ChatHistory)));
+      const grouped: Record<string, Session[]> = {};
+      snap.docs.forEach((d) => {
+        const data = d.data() as Omit<Session, "id">;
+        if (!grouped[data.subject]) grouped[data.subject] = [];
+        grouped[data.subject].push({ id: d.id, ...data });
+      });
+      setSessions(grouped);
     });
     return unsub;
   }, [user]);
+
+  // Subscribe to messages for a session
+  const subscribeToSession = useCallback((sid: string) => {
+    if (!user) return;
+    if (unsubRef.current) { unsubRef.current(); unsubRef.current = null; }
+    const q = query(
+      collection(db, "ai_chats", user.uid, "sessions", sid, "messages"),
+      orderBy("timestamp", "asc")
+    );
+    unsubRef.current = onSnapshot(q, (snap) => {
+      setMessages(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Message)));
+    });
+  }, [user]);
+
+  // Subject change → fresh session
+  useEffect(() => {
+    const newId = genId();
+    setSessionId(newId);
+    setMessages([]);
+    setActiveSession(null);
+    if (unsubRef.current) { unsubRef.current(); unsubRef.current = null; }
+  }, [subject]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, sending]);
 
+  function newChat() {
+    const newId = genId();
+    setSessionId(newId);
+    setMessages([]);
+    setActiveSession(null);
+    if (unsubRef.current) { unsubRef.current(); unsubRef.current = null; }
+  }
+
+  function loadSession(sess: Session) {
+    setSubject(sess.subject);
+    setActiveSession(sess.id);
+    setSessionId(sess.id);
+    subscribeToSession(sess.id);
+  }
+
+  function toggleAccordion(subjectId: string) {
+    setOpenSubjects((prev) => ({ ...prev, [subjectId]: !prev[subjectId] }));
+  }
+
   async function askQuestion() {
-    if (!question.trim() || sending) return;
+    if (!question.trim() || sending || !user) return;
     const q = question.trim();
     setQuestion("");
     setSending(true);
+    const currentSessionId = sessionId;
+    const isFirst = messages.length === 0;
 
-    setMessages((prev) => [
-      ...prev,
-      { role: "user", text: q, subject, marks },
-    ]);
+    if (isFirst) {
+      await setDoc(doc(db, "ai_chats", user.uid, "sessions", currentSessionId), {
+        subject,
+        firstQuestion: q.slice(0, 80),
+        timestamp: serverTimestamp(),
+      });
+      setActiveSession(currentSessionId);
+      subscribeToSession(currentSessionId);
+    }
+
+    await addDoc(
+      collection(db, "ai_chats", user.uid, "sessions", currentSessionId, "messages"),
+      { role: "user", text: q, marks: marks || null, timestamp: serverTimestamp() }
+    );
 
     try {
       const res = await fetch("/api/chat", {
@@ -96,40 +164,36 @@ export default function AskAiPage() {
           question: q,
           subject,
           marks: marks ? parseInt(marks) : null,
-          userId: user?.uid ?? null,
+          userId: user.uid,
+          sessionId: currentSessionId,
+          history: messages.slice(-6).map((m) => ({
+            role: m.role === "user" ? "user" : "assistant",
+            content: m.text,
+          })),
         }),
       });
       const data = await res.json();
-      setMessages((prev) => [...prev, { role: "ai", text: data.reply }]);
+      await addDoc(
+        collection(db, "ai_chats", user.uid, "sessions", currentSessionId, "messages"),
+        { role: "ai", text: data.reply ?? "Sorry, something went wrong.", timestamp: serverTimestamp() }
+      );
     } catch {
-      setMessages((prev) => [
-        ...prev,
-        { role: "ai", text: "Sorry, something went wrong. Please try again." },
-      ]);
+      await addDoc(
+        collection(db, "ai_chats", user.uid, "sessions", currentSessionId, "messages"),
+        { role: "ai", text: "Sorry, something went wrong. Please try again.", timestamp: serverTimestamp() }
+      );
     } finally {
       setSending(false);
     }
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      askQuestion();
-    }
-  }
-
-  function loadFromHistory(item: ChatHistory) {
-    setMessages([
-      { role: "user", text: item.question, subject: item.subject, marks: item.marks?.toString() ?? "" },
-      { role: "ai", text: item.answer },
-    ]);
-    setSubject(item.subject);
-    setShowHistory(false);
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); askQuestion(); }
   }
 
   function formatDate(ts: Timestamp | null) {
     if (!ts) return "";
-    return ts.toDate().toLocaleDateString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    return ts.toDate().toLocaleDateString([], { month: "short", day: "numeric" });
   }
 
   const activeSubject = SUBJECTS.find((s) => s.id === subject);
@@ -143,43 +207,59 @@ export default function AskAiPage() {
       <Navbar />
       <div className={styles.layout}>
 
-        {/* SIDEBAR — history */}
+        {/* SIDEBAR */}
         <aside className={styles.sidebar}>
           <div className={styles.sidebarHeader}>
-            <div className={styles.sidebarTitle}>Chat History</div>
-            <button className={styles.newChat} onClick={() => setMessages([])}>+ New</button>
+            <div className={styles.sidebarTitle}>Past Chats</div>
+            <button className={styles.newChat} onClick={newChat}>+ New</button>
           </div>
-          {history.length === 0 && (
-            <div className={styles.emptyHistory}>No chats yet. Ask your first question!</div>
-          )}
-          {history.map((item) => {
-            const s = SUBJECTS.find((x) => x.id === item.subject);
-            return (
-              <button key={item.id} className={styles.historyItem} onClick={() => loadFromHistory(item)}>
-                <div className={styles.historyIcon}>{s?.icon ?? "✦"}</div>
-                <div className={styles.historyInfo}>
-                  <div className={styles.historyQ}>{item.question.slice(0, 50)}{item.question.length > 50 ? "..." : ""}</div>
-                  <div className={styles.historyMeta}>{s?.name} · {formatDate(item.timestamp)}</div>
+          <div className={styles.sidebarScroll}>
+            {Object.keys(sessions).length === 0 && (
+              <div className={styles.emptyHistory}>No chats yet. Ask your first question!</div>
+            )}
+            {SUBJECTS.map((s) => {
+              const subSessions = sessions[s.id] ?? [];
+              if (subSessions.length === 0) return null;
+              const isOpen = openSubjects[s.id] ?? true;
+              return (
+                <div key={s.id} className={styles.subjectGroup}>
+                  <button className={styles.subjectGroupHeader} onClick={() => toggleAccordion(s.id)}>
+                    <span>{s.icon}</span>
+                    <span className={styles.subjectGroupName}>{s.name}</span>
+                    <span className={styles.subjectGroupCount}>{subSessions.length}</span>
+                    <span className={styles.accordion}>{isOpen ? "▾" : "▸"}</span>
+                  </button>
+                  {isOpen && subSessions.map((sess) => (
+                    <button
+                      key={sess.id}
+                      className={`${styles.historyItem} ${activeSession === sess.id ? styles.historyItemActive : ""}`}
+                      onClick={() => loadSession(sess)}
+                    >
+                      <div className={styles.historyInfo}>
+                        <div className={styles.historyQ}>
+                          {sess.firstQuestion}{sess.firstQuestion.length >= 80 ? "..." : ""}
+                        </div>
+                        <div className={styles.historyMeta}>{formatDate(sess.timestamp)}</div>
+                      </div>
+                    </button>
+                  ))}
                 </div>
-              </button>
-            );
-          })}
+              );
+            })}
+          </div>
         </aside>
 
         {/* MAIN CHAT */}
         <div className={styles.chatMain}>
-
-          {/* Header */}
           <div className={styles.chatHeader}>
             <div className={styles.chatHeaderIcon}>✦</div>
             <div>
-              <div className={styles.chatHeaderTitle}>Ask AI</div>
-              <div className={styles.chatHeaderSub}>Powered by Groq · Cambridge IGCSE syllabus</div>
+              <div className={styles.chatHeaderTitle}>{activeSubject?.icon} {activeSubject?.name}</div>
+              <div className={styles.chatHeaderSub}>Powered by Groq · Cambridge IGCSE</div>
             </div>
-            <button className={styles.historyToggle} onClick={() => setShowHistory(p => !p)}>📋 History</button>
+            <button className={styles.newChatBtn} onClick={newChat}>+ New Chat</button>
           </div>
 
-          {/* Subject + Marks selectors */}
           <div className={styles.selectors}>
             <div className={styles.subjectTabs}>
               {SUBJECTS.map((s) => (
@@ -196,52 +276,41 @@ export default function AskAiPage() {
             </div>
             <select className={styles.marksSelect} value={marks} onChange={(e) => setMarks(e.target.value)}>
               <option value="">Marks (optional)</option>
-              {MARKS.filter(m => m !== "").map((m) => (
-                <option key={m} value={m}>{m} marks</option>
-              ))}
+              {MARKS.map((m) => <option key={m} value={m}>{m} marks</option>)}
             </select>
           </div>
 
-          {/* Messages */}
           <div className={styles.messages}>
             {messages.length === 0 && (
               <div className={styles.emptyChat}>
                 <div className={styles.emptyChatIcon}>✦</div>
                 <div className={styles.emptyChatTitle}>Ask me anything about {activeSubject?.name}</div>
-                <div className={styles.emptyChatSub}>I&apos;m trained on the full Cambridge IGCSE syllabus, past papers, and mark schemes.</div>
+                <div className={styles.emptyChatSub}>Trained on the Cambridge IGCSE syllabus, past papers, and mark schemes.</div>
                 <div className={styles.suggestions}>
                   {[
                     `Explain a 6-mark question for ${activeSubject?.name}`,
                     `What are the key topics in ${activeSubject?.name}?`,
                     `How do I get full marks on a definition question?`,
-                  ].map((s) => (
-                    <button key={s} className={styles.suggestion} onClick={() => setQuestion(s)}>{s}</button>
+                  ].map((sugg) => (
+                    <button key={sugg} className={styles.suggestion} onClick={() => setQuestion(sugg)}>{sugg}</button>
                   ))}
                 </div>
               </div>
             )}
             {messages.map((msg, i) => (
-              <div key={i} className={`${styles.msgRow} ${msg.role === "user" ? styles.msgUser : styles.msgAi}`}>
-                {msg.role === "ai" && (
-                  <div className={styles.aiAvatar}>✦</div>
-                )}
+              <div key={msg.id ?? i} className={`${styles.msgRow} ${msg.role === "user" ? styles.msgUser : styles.msgAi}`}>
+                {msg.role === "ai" && <div className={styles.aiAvatar}>✦</div>}
                 <div className={styles.msgBubbleWrap}>
-                  {msg.role === "user" && msg.subject && (
-                    <div className={styles.msgMeta}>
-                      {SUBJECTS.find(s => s.id === msg.subject)?.icon} {SUBJECTS.find(s => s.id === msg.subject)?.name}
-                      {msg.marks && ` · ${msg.marks} marks`}
-                    </div>
+                  {msg.role === "user" && msg.marks && (
+                    <div className={styles.msgMeta}>{msg.marks} marks</div>
                   )}
                   <div className={`${styles.msgBubble} ${msg.role === "user" ? styles.bubbleUser : styles.bubbleAi}`}>
                     {msg.role === "ai"
                       ? msg.text.split("\n").map((line, j) => <p key={j}>{line}</p>)
-                      : msg.text
-                    }
+                      : msg.text}
                   </div>
                   {msg.role === "ai" && (
-                    <button className={styles.copyBtn} onClick={() => navigator.clipboard.writeText(msg.text)}>
-                      📋 Copy
-                    </button>
+                    <button className={styles.copyBtn} onClick={() => navigator.clipboard.writeText(msg.text)}>📋 Copy</button>
                   )}
                 </div>
               </div>
@@ -249,21 +318,18 @@ export default function AskAiPage() {
             {sending && (
               <div className={`${styles.msgRow} ${styles.msgAi}`}>
                 <div className={styles.aiAvatar}>✦</div>
-                <div className={styles.msgBubble} style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
-                  <div className={styles.typing}>
-                    <span /><span /><span />
-                  </div>
+                <div className={`${styles.msgBubble} ${styles.bubbleAi}`}>
+                  <div className={styles.typing}><span /><span /><span /></div>
                 </div>
               </div>
             )}
             <div ref={bottomRef} />
           </div>
 
-          {/* Input */}
           <div className={styles.inputArea}>
             <textarea
               className={styles.textInput}
-              placeholder={`Ask about ${activeSubject?.name}... (Enter to send, Shift+Enter for new line)`}
+              placeholder={`Ask about ${activeSubject?.name}... (Enter to send)`}
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               onKeyDown={handleKeyDown}
