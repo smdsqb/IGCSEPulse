@@ -51,6 +51,8 @@ Rules:
 - Be concise, student-friendly, and examiner-accurate.`;
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
+    // DEBUG — remove this after fixing
+    console.log('DEBUG KEY:', apiKey ? `exists, length=${apiKey.length}, starts=${apiKey.substring(0, 10)}` : 'UNDEFINED');
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -60,7 +62,7 @@ Rules:
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001', // fast + cheap, great for tutoring
+        model: 'claude-haiku-4-5-20251001',
         max_tokens: 1000,
         system: systemPrompt,
         messages: [
@@ -89,7 +91,6 @@ Rules:
 
     const answer = result.content[0].text;
 
-    // Save to Firestore
     try {
       const adminDb = getAdminDb();
       await adminDb.collection('ai_chats').add({
