@@ -113,19 +113,24 @@ async function extractFileText(file: File): Promise<string> {
     return await file.text();
   }
 
-  // PDF — use pdfjs-dist loaded from CDN to avoid SSR issues
+  // PDF — workerless extraction to avoid Next.js SSR/worker issues
   if (file.type === "application/pdf") {
     try {
       const arrayBuffer = await file.arrayBuffer();
-      // Dynamically import pdfjs only in browser
-      const pdfjsLib = await import("pdfjs-dist");
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf" as any);
+      // Run in main thread — no worker needed in browser context
+      pdfjsLib.GlobalWorkerOptions.workerSrc = "";
+      const pdf = await pdfjsLib.getDocument({
+        data: new Uint8Array(arrayBuffer),
+        useWorkerFetch: false,
+        isEvalSupported: false,
+        useSystemFonts: true,
+      }).promise;
       let fullText = "";
       for (let p = 1; p <= Math.min(pdf.numPages, 10); p++) {
         const page = await pdf.getPage(p);
         const content = await page.getTextContent();
-        fullText += content.items.map((item) => ('str' in item ? item.str ?? "" : "")).join(" ") + "\n";
+        fullText += content.items.map((item: any) => item.str ?? "").join(" ") + "\n";
       }
       return fullText.trim() || "[Could not extract text from PDF]";
     } catch (err) {
@@ -172,14 +177,12 @@ export default function AskAiPage() {
   const bottomRef        = useRef<HTMLDivElement>(null);
   const unsubRef         = useRef<(() => void) | null>(null);
   const fileRef          = useRef<HTMLInputElement>(null);
-  // Prevents subject-change effect from wiping a session we're loading
   const loadingSessionRef = useRef(false);
 
   useEffect(() => {
     if (!loading && !user) router.push("/login");
   }, [user, loading, router]);
 
-  // Load all sessions grouped by subject
   useEffect(() => {
     if (!user) return;
     const q = query(collection(db, "ai_chats", user.uid, "sessions"), orderBy("timestamp", "desc"));
@@ -207,7 +210,6 @@ export default function AskAiPage() {
     });
   }, [user]);
 
-  // Subject change → fresh session (but skip if we're loading a past session)
   useEffect(() => {
     if (loadingSessionRef.current) return;
     const newId = genId();
@@ -230,7 +232,6 @@ export default function AskAiPage() {
     if (unsubRef.current) { unsubRef.current(); unsubRef.current = null; }
   }
 
-  // Single-tap session load — use ref to prevent subject effect from firing
   function loadSession(sess: Session) {
     if (activeSession === sess.id) return;
     loadingSessionRef.current = true;
@@ -239,7 +240,6 @@ export default function AskAiPage() {
     setActiveSession(sess.id);
     setSessionId(sess.id);
     subscribeToSession(sess.id);
-    // Reset flag after state flush
     setTimeout(() => { loadingSessionRef.current = false; }, 100);
   }
 
@@ -281,14 +281,11 @@ export default function AskAiPage() {
       setUploading(true);
       setExtracting(true);
       try {
-        // Upload to Firebase Storage
         const storageRef = ref(storage, `ai_files/${user.uid}/${currentSessionId}/${Date.now()}_${attachedFile.name}`);
         await uploadBytes(storageRef, attachedFile);
         fileUrl = await getDownloadURL(storageRef);
         fileName = attachedFile.name;
         fileType = attachedFile.type;
-
-        // Extract readable content to send to AI
         extractedContent = await extractFileText(attachedFile);
       } catch (err) {
         console.error("File processing error:", err);
@@ -314,7 +311,6 @@ export default function AskAiPage() {
       { role: "user", text: q, marks: marks || null, fileUrl: fileUrl || null, fileName: fileName || null, fileType: fileType || null, timestamp: serverTimestamp() }
     );
 
-    // Build question with file content embedded
     let fullQuestion = q;
     if (extractedContent) {
       if (fileType?.startsWith("image/")) {
@@ -487,49 +483,59 @@ export default function AskAiPage() {
             {(sending || extracting) && (
               <div className={`${styles.msgRow} ${styles.msgAi}`}>
                 <div className={styles.aiAvatar}>✦</div>
-                <div className={`${styles.msgBubble} ${styles.bubbleAi}`}>
-                  {extracting
-                    ? <span className={styles.extractingText}>Reading file...</span>
-                    : <div className={styles.typing}><span /><span /><span /></div>
-                  }
+                <div className={styles.msgBubbleWrap}>
+                  <div className={`${styles.msgBubble} ${styles.bubbleAi}`}>
+                    <div className={styles.typing}>
+                      <span /><span /><span />
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
             <div ref={bottomRef} />
           </div>
 
-          {attachedFile && (
-            <div className={styles.filePreviewBar}>
-              {filePreview
-                ? <img src={filePreview} alt="preview" className={styles.filePreviewThumb} />
-                : <span className={styles.filePreviewIcon}>📎</span>
-              }
-              <span className={styles.filePreviewName}>{attachedFile.name}</span>
-              <span className={styles.filePreviewSize}>({(attachedFile.size / 1024).toFixed(0)}KB)</span>
-              <button className={styles.filePreviewRemove} onClick={clearFile}>✕</button>
-            </div>
-          )}
-
           <div className={styles.inputArea}>
-            <input type="file" accept={ACCEPTED_FILES} ref={fileRef} onChange={handleFileChange} className={styles.hiddenFile} />
-            <button
-              className={`${styles.attachBtn} ${attachedFile ? styles.attachBtnActive : ""}`}
-              onClick={() => fileRef.current?.click()}
-              title="Attach image, PDF, or document"
-            >
-              📎
-            </button>
-            <textarea
-              className={styles.textInput}
-              placeholder={attachedFile ? `Add a message about ${attachedFile.name}... (optional)` : `Ask about ${activeSubject?.name}... (Enter to send)`}
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              onKeyDown={handleKeyDown}
-              rows={2}
-            />
-            <button className={styles.sendBtn} onClick={askQuestion} disabled={sending || uploading || extracting || (!question.trim() && !attachedFile)}>
-              {uploading || extracting ? "⏫" : sending ? "..." : "↑"}
-            </button>
+            {filePreview && (
+              <div className={styles.filePreviewWrap}>
+                <img src={filePreview} alt="preview" className={styles.filePreview} />
+                <button className={styles.removeFile} onClick={clearFile}>✕</button>
+              </div>
+            )}
+            {attachedFile && !filePreview && (
+              <div className={styles.fileChip}>
+                📎 {attachedFile.name}
+                <button className={styles.removeFile} onClick={clearFile}>✕</button>
+              </div>
+            )}
+            <div className={styles.inputRow}>
+              <button className={styles.attachBtn} onClick={() => fileRef.current?.click()} title="Attach file">
+                📎
+              </button>
+              <input
+                ref={fileRef}
+                type="file"
+                accept={ACCEPTED_FILES}
+                style={{ display: "none" }}
+                onChange={handleFileChange}
+              />
+              <textarea
+                className={styles.input}
+                placeholder={`Ask about ${activeSubject?.name}... (Shift+Enter for new line)`}
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                onKeyDown={handleKeyDown}
+                rows={1}
+                disabled={sending}
+              />
+              <button
+                className={styles.sendBtn}
+                onClick={askQuestion}
+                disabled={sending || (!question.trim() && !attachedFile)}
+              >
+                {sending ? <div className={styles.btnSpinner} /> : "↑"}
+              </button>
+            </div>
           </div>
         </div>
       </div>
