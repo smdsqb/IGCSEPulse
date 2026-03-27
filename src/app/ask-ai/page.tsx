@@ -174,7 +174,7 @@ export default function AskAiPage() {
             <div className={styles.chatHeaderIcon}>✦</div>
             <div>
               <div className={styles.chatHeaderTitle}>Ask AI</div>
-              <div className={styles.chatHeaderSub}>Powered by DeepSeek · Cambridge IGCSE syllabus</div>
+              <div className={styles.chatHeaderSub}>Powered by Groq · Cambridge IGCSE syllabus</div>
             </div>
             <button className={styles.historyToggle} onClick={() => setShowHistory(p => !p)}>📋 History</button>
           </div>
