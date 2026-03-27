@@ -50,46 +50,43 @@ Rules:
 - For 6+ marks, always include evaluation/judgement.
 - Be concise, student-friendly, and examiner-accurate.`;
 
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    // DEBUG — remove this after fixing
-    console.log('DEBUG KEY:', apiKey ? `exists, length=${apiKey.length}, starts=${apiKey.substring(0, 10)}` : 'UNDEFINED');
+    const apiKey = process.env.GROQ_API_KEY;
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
+        'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
+        model: 'llama-3.3-70b-versatile',
         max_tokens: 1000,
-        system: systemPrompt,
+        temperature: 0.3,
         messages: [
+          { role: 'system', content: systemPrompt },
           { role: 'user', content: question }
         ],
-        temperature: 0.3,
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Claude API error:', response.status, errorText);
+      console.error('Groq API error:', response.status, errorText);
       return NextResponse.json({
-        reply: `AI service error: ${response.status}. Please check your Anthropic API key.`,
+        reply: `AI service error: ${response.status}. Please try again.`,
       });
     }
 
     const result = await response.json();
 
-    if (!result.content || !result.content[0]) {
-      console.error('Invalid Claude response structure:', result);
+    if (!result.choices || !result.choices[0]) {
+      console.error('Invalid Groq response structure:', result);
       return NextResponse.json({
         reply: 'Sorry, I received an invalid response. Please try again.',
       });
     }
 
-    const answer = result.content[0].text;
+    const answer = result.choices[0].message.content;
 
     try {
       const adminDb = getAdminDb();
