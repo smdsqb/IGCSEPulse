@@ -327,13 +327,20 @@
 /* INPUT */
 .inputArea {
   display: flex;
-  gap: 10px;
-  padding: 16px 20px;
+  flex-direction: column;
+  padding: 12px 20px 16px;
   border-top: 1px solid var(--border);
   background: var(--card);
   flex-shrink: 0;
-  align-items: flex-end;
+  gap: 8px;
 }
+.inputRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  width: 100%;
+}
+.input,
 .textInput {
   flex: 1;
   background: var(--surface2);
@@ -349,8 +356,11 @@
   line-height: 1.5;
   max-height: 120px;
 }
+.input::placeholder,
 .textInput::placeholder { color: var(--ink2); opacity: 0.5; }
+.input:focus,
 .textInput:focus { border-color: var(--accent); }
+
 .sendBtn {
   background: var(--pulse);
   color: #fff;
@@ -367,13 +377,70 @@
 .sendBtn:hover:not(:disabled) { transform: scale(1.05); }
 .sendBtn:disabled { opacity: 0.4; cursor: not-allowed; }
 
+.btnSpinner {
+  width: 18px; height: 18px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+/* FILE PREVIEW IN INPUT */
+.filePreviewWrap {
+  position: relative;
+  display: inline-block;
+  align-self: flex-start;
+}
+.filePreview {
+  width: 60px; height: 60px;
+  border-radius: 8px;
+  object-fit: cover;
+  display: block;
+}
+.fileChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  color: var(--ink2);
+  font-family: "DM Sans", sans-serif;
+  align-self: flex-start;
+}
+.removeFile {
+  background: var(--pulse);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 18px; height: 18px;
+  font-size: 10px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  position: absolute;
+  top: -6px; right: -6px;
+  line-height: 1;
+}
+.fileChip .removeFile {
+  position: static;
+  background: none;
+  color: var(--ink2);
+  font-size: 13px;
+  width: auto; height: auto;
+  border-radius: 0;
+}
+.fileChip .removeFile:hover { color: var(--pulse); }
+
 @media (max-width: 800px) {
   .sidebar { display: none; }
   .historyToggle { display: flex; }
   .subjectTabName { display: none; }
 }
 
-/* ── NEW: sidebar scroll + subject accordion ─────────────────────────── */
+/* ── SIDEBAR SCROLL + ACCORDION ─────────────────────────────────────── */
 .sidebarScroll {
   flex: 1;
   overflow-y: auto;
@@ -381,9 +448,7 @@
 .sidebarScroll::-webkit-scrollbar { width: 3px; }
 .sidebarScroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
-.subjectGroup {
-  border-bottom: 1px solid var(--border);
-}
+.subjectGroup { border-bottom: 1px solid var(--border); }
 
 .subjectGroupHeader {
   display: flex;
@@ -397,7 +462,7 @@
   font-family: "DM Sans", sans-serif;
   transition: background 0.15s;
 }
-.subjectGroupHeader:hover { background: var(--card2); }
+.subjectGroupHeader:hover { background: var(--card); }
 
 .subjectGroupName {
   font-size: 12px;
@@ -406,27 +471,23 @@
   flex: 1;
   text-align: left;
 }
-
 .subjectGroupCount {
   font-size: 11px;
-  background: var(--tag-bg);
-  color: var(--tag-text);
+  background: var(--surface2);
+  color: var(--ink2);
   border-radius: 50px;
   padding: 1px 7px;
   font-weight: 600;
+  border: 1px solid var(--border);
 }
-
-.accordion {
-  font-size: 11px;
-  color: var(--ink2);
-}
+.accordion { font-size: 11px; color: var(--ink2); }
 
 .historyItemActive {
-  background: rgba(255, 77, 109, 0.08) !important;
+  background: rgba(255,77,109,0.08) !important;
   border-left: 2px solid var(--pulse);
 }
 
-/* ── NEW: new chat button in header ──────────────────────────────────── */
+/* ── NEW CHAT BUTTON IN HEADER ───────────────────────────────────────── */
 .newChatBtn {
   margin-left: auto;
   background: transparent;
@@ -559,7 +620,7 @@ h5.mdHeading { font-size: 13px; }
   color: var(--pulse);
 }
 
-/* ── CODE BLOCK (CS syntax highlighting) ────────────────────────────── */
+/* ── CODE BLOCK ──────────────────────────────────────────────────────── */
 .codeBlock {
   background: #0D0B14;
   border: 1px solid rgba(155,127,212,0.2);
