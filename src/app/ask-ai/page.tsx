@@ -113,26 +113,17 @@ async function extractFileText(file: File): Promise<string> {
     return await file.text();
   }
 
-  // PDF — workerless extraction to avoid Next.js SSR/worker issues
+  // PDF — server-side extraction via API route
   if (file.type === "application/pdf") {
     try {
-      const arrayBuffer = await file.arrayBuffer();
-      const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf" as any);
-      // Run in main thread — no worker needed in browser context
-      pdfjsLib.GlobalWorkerOptions.workerSrc = "";
-      const pdf = await pdfjsLib.getDocument({
-        data: new Uint8Array(arrayBuffer),
-        useWorkerFetch: false,
-        isEvalSupported: false,
-        useSystemFonts: true,
-      }).promise;
-      let fullText = "";
-      for (let p = 1; p <= Math.min(pdf.numPages, 10); p++) {
-        const page = await pdf.getPage(p);
-        const content = await page.getTextContent();
-        fullText += content.items.map((item: any) => item.str ?? "").join(" ") + "\n";
-      }
-      return fullText.trim() || "[Could not extract text from PDF]";
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/extract-pdf', {
+        method: 'POST',
+        body: formData,
+      });
+      const { text } = await res.json();
+      return text || "[Could not extract text from PDF]";
     } catch (err) {
       console.error("PDF parse error:", err);
       return "[PDF could not be read — please paste the text directly]";
