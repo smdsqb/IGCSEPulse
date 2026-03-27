@@ -22,7 +22,6 @@ const SUBJECTS = [
 ];
 
 const MARKS = ["2", "4", "6", "8", "10", "12"];
-
 const ACCEPTED_FILES = ".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.txt";
 
 interface Message {
@@ -48,16 +47,12 @@ function genId() {
 }
 
 // ── Markdown renderer ────────────────────────────────────────────────────────
-// Handles: **bold**, *italic*, `code`, ```code blocks```, bullet lists, numbered lists
 function renderMarkdown(text: string, isCs: boolean) {
   const lines = text.split("\n");
   const elements: React.ReactNode[] = [];
   let i = 0;
-
   while (i < lines.length) {
     const line = lines[i];
-
-    // Fenced code block
     if (line.trim().startsWith("```")) {
       const lang = line.trim().slice(3).trim() || (isCs ? "python" : "");
       const codeLines: string[] = [];
@@ -67,85 +62,93 @@ function renderMarkdown(text: string, isCs: boolean) {
         i++;
       }
       elements.push(
-        <div key={i} className={styles.codeBlock}>
+        <div key={`code-${i}`} className={styles.codeBlock}>
           {lang && <div className={styles.codeLang}>{lang}</div>}
           <pre><code>{codeLines.join("\n")}</code></pre>
-          <button
-            className={styles.copyCode}
-            onClick={() => navigator.clipboard.writeText(codeLines.join("\n"))}
-          >📋 Copy</button>
+          <button className={styles.copyCode} onClick={() => navigator.clipboard.writeText(codeLines.join("\n"))}>📋 Copy</button>
         </div>
       );
-      i++;
-      continue;
+      i++; continue;
     }
-
-    // Bullet list
     if (/^(\s*[-•*])\s/.test(line)) {
       const items: string[] = [];
-      while (i < lines.length && /^(\s*[-•*])\s/.test(lines[i])) {
-        items.push(lines[i].replace(/^\s*[-•*]\s/, ""));
-        i++;
-      }
-      elements.push(
-        <ul key={i} className={styles.mdList}>
-          {items.map((item, j) => <li key={j}>{inlineMarkdown(item)}</li>)}
-        </ul>
-      );
+      while (i < lines.length && /^(\s*[-•*])\s/.test(lines[i])) { items.push(lines[i].replace(/^\s*[-•*]\s/, "")); i++; }
+      elements.push(<ul key={`ul-${i}`} className={styles.mdList}>{items.map((it, j) => <li key={j}>{inlineMd(it)}</li>)}</ul>);
       continue;
     }
-
-    // Numbered list
     if (/^\d+\.\s/.test(line)) {
       const items: string[] = [];
-      while (i < lines.length && /^\d+\.\s/.test(lines[i])) {
-        items.push(lines[i].replace(/^\d+\.\s/, ""));
-        i++;
-      }
-      elements.push(
-        <ol key={i} className={styles.mdList}>
-          {items.map((item, j) => <li key={j}>{inlineMarkdown(item)}</li>)}
-        </ol>
-      );
+      while (i < lines.length && /^\d+\.\s/.test(lines[i])) { items.push(lines[i].replace(/^\d+\.\s/, "")); i++; }
+      elements.push(<ol key={`ol-${i}`} className={styles.mdList}>{items.map((it, j) => <li key={j}>{inlineMd(it)}</li>)}</ol>);
       continue;
     }
-
-    // Heading
     if (/^#{1,3}\s/.test(line)) {
-      const level = line.match(/^(#{1,3})/)?.[1].length ?? 1;
+      const level = (line.match(/^(#{1,3})/)?.[1].length ?? 1);
       const content = line.replace(/^#{1,3}\s/, "");
-      const Tag = `h${level + 2}` as "h3" | "h4" | "h5";
-      elements.push(<Tag key={i} className={styles.mdHeading}>{inlineMarkdown(content)}</Tag>);
-      i++;
-      continue;
+      const Tag = (`h${level + 2}`) as "h3"|"h4"|"h5";
+      elements.push(<Tag key={`h-${i}`} className={styles.mdHeading}>{inlineMd(content)}</Tag>);
+      i++; continue;
     }
-
-    // Empty line
-    if (line.trim() === "") {
-      i++;
-      continue;
-    }
-
-    // Paragraph
-    elements.push(<p key={i} className={styles.mdPara}>{inlineMarkdown(line)}</p>);
+    if (line.trim() === "") { i++; continue; }
+    elements.push(<p key={`p-${i}`} className={styles.mdPara}>{inlineMd(line)}</p>);
     i++;
   }
-
   return <>{elements}</>;
 }
 
-function inlineMarkdown(text: string): React.ReactNode {
-  // Process **bold**, *italic*, `code` inline
+function inlineMd(text: string): React.ReactNode {
   const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g);
   return parts.map((part, i) => {
-    if (part.startsWith("**") && part.endsWith("**"))
-      return <strong key={i}>{part.slice(2, -2)}</strong>;
-    if (part.startsWith("*") && part.endsWith("*"))
-      return <em key={i}>{part.slice(1, -1)}</em>;
-    if (part.startsWith("`") && part.endsWith("`"))
-      return <code key={i} className={styles.inlineCode}>{part.slice(1, -1)}</code>;
+    if (part.startsWith("**") && part.endsWith("**")) return <strong key={i}>{part.slice(2, -2)}</strong>;
+    if (part.startsWith("*") && part.endsWith("*")) return <em key={i}>{part.slice(1, -1)}</em>;
+    if (part.startsWith("`") && part.endsWith("`")) return <code key={i} className={styles.inlineCode}>{part.slice(1, -1)}</code>;
     return part;
   });
+}
+
+// ── Extract text from file client-side ──────────────────────────────────────
+async function extractFileText(file: File): Promise<string> {
+  // Plain text / code files
+  if (file.type === "text/plain" || file.name.endsWith(".txt")) {
+    return await file.text();
+  }
+
+  // PDF — use pdfjs-dist loaded from CDN to avoid SSR issues
+  if (file.type === "application/pdf") {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      // Dynamically import pdfjs only in browser
+      const pdfjsLib = await import("pdfjs-dist");
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let fullText = "";
+      for (let p = 1; p <= Math.min(pdf.numPages, 10); p++) {
+        const page = await pdf.getPage(p);
+        const content = await page.getTextContent();
+        fullText += content.items.map((item: { str?: string }) => item.str ?? "").join(" ") + "\n";
+      }
+      return fullText.trim() || "[Could not extract text from PDF]";
+    } catch (err) {
+      console.error("PDF parse error:", err);
+      return "[PDF could not be read — please paste the text directly]";
+    }
+  }
+
+  // Images — convert to base64 for vision context
+  if (file.type.startsWith("image/")) {
+    return await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // .docx / other — read as text best-effort
+  try {
+    return await file.text();
+  } catch {
+    return `[File: ${file.name} — could not extract text]`;
+  }
 }
 
 export default function AskAiPage() {
@@ -164,10 +167,13 @@ export default function AskAiPage() {
   const [attachedFile, setAttachedFile]   = useState<File | null>(null);
   const [filePreview, setFilePreview]     = useState<string | null>(null);
   const [uploading, setUploading]         = useState(false);
+  const [extracting, setExtracting]       = useState(false);
 
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const unsubRef  = useRef<(() => void) | null>(null);
-  const fileRef   = useRef<HTMLInputElement>(null);
+  const bottomRef        = useRef<HTMLDivElement>(null);
+  const unsubRef         = useRef<(() => void) | null>(null);
+  const fileRef          = useRef<HTMLInputElement>(null);
+  // Prevents subject-change effect from wiping a session we're loading
+  const loadingSessionRef = useRef(false);
 
   useEffect(() => {
     if (!loading && !user) router.push("/login");
@@ -176,10 +182,7 @@ export default function AskAiPage() {
   // Load all sessions grouped by subject
   useEffect(() => {
     if (!user) return;
-    const q = query(
-      collection(db, "ai_chats", user.uid, "sessions"),
-      orderBy("timestamp", "desc")
-    );
+    const q = query(collection(db, "ai_chats", user.uid, "sessions"), orderBy("timestamp", "desc"));
     const unsub = onSnapshot(q, (snap) => {
       const grouped: Record<string, Session[]> = {};
       snap.docs.forEach((d) => {
@@ -204,8 +207,9 @@ export default function AskAiPage() {
     });
   }, [user]);
 
-  // Subject change → fresh session
+  // Subject change → fresh session (but skip if we're loading a past session)
   useEffect(() => {
+    if (loadingSessionRef.current) return;
     const newId = genId();
     setSessionId(newId);
     setMessages([]);
@@ -226,14 +230,17 @@ export default function AskAiPage() {
     if (unsubRef.current) { unsubRef.current(); unsubRef.current = null; }
   }
 
-  // Single-tap load — no double-tap needed
+  // Single-tap session load — use ref to prevent subject effect from firing
   function loadSession(sess: Session) {
-    if (activeSession === sess.id) return; // already loaded
+    if (activeSession === sess.id) return;
+    loadingSessionRef.current = true;
+    setMessages([]);
     setSubject(sess.subject);
     setActiveSession(sess.id);
     setSessionId(sess.id);
-    setMessages([]); // clear immediately so old messages don't flash
     subscribeToSession(sess.id);
+    // Reset flag after state flush
+    setTimeout(() => { loadingSessionRef.current = false; }, 100);
   }
 
   function toggleAccordion(subjectId: string) {
@@ -268,20 +275,26 @@ export default function AskAiPage() {
     let fileUrl: string | null = null;
     let fileName: string | null = null;
     let fileType: string | null = null;
+    let extractedContent: string | null = null;
 
-    // Upload file if attached
     if (attachedFile) {
       setUploading(true);
+      setExtracting(true);
       try {
+        // Upload to Firebase Storage
         const storageRef = ref(storage, `ai_files/${user.uid}/${currentSessionId}/${Date.now()}_${attachedFile.name}`);
         await uploadBytes(storageRef, attachedFile);
         fileUrl = await getDownloadURL(storageRef);
         fileName = attachedFile.name;
         fileType = attachedFile.type;
+
+        // Extract readable content to send to AI
+        extractedContent = await extractFileText(attachedFile);
       } catch (err) {
-        console.error("File upload error:", err);
+        console.error("File processing error:", err);
       } finally {
         setUploading(false);
+        setExtracting(false);
         clearFile();
       }
     }
@@ -298,32 +311,32 @@ export default function AskAiPage() {
 
     await addDoc(
       collection(db, "ai_chats", user.uid, "sessions", currentSessionId, "messages"),
-      {
-        role: "user",
-        text: q,
-        marks: marks || null,
-        fileUrl: fileUrl || null,
-        fileName: fileName || null,
-        fileType: fileType || null,
-        timestamp: serverTimestamp(),
-      }
+      { role: "user", text: q, marks: marks || null, fileUrl: fileUrl || null, fileName: fileName || null, fileType: fileType || null, timestamp: serverTimestamp() }
     );
+
+    // Build question with file content embedded
+    let fullQuestion = q;
+    if (extractedContent) {
+      if (fileType?.startsWith("image/")) {
+        fullQuestion = `${q ? q + "\n\n" : ""}[The user has shared an image. Here is the base64 data — please describe what you see and help with any IGCSE-related content in it]\n${extractedContent.slice(0, 3000)}`;
+      } else {
+        fullQuestion = `${q ? q + "\n\n" : ""}[The user has uploaded a file: "${fileName}". Here is its content:]\n\n${extractedContent.slice(0, 4000)}`;
+      }
+    }
 
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          question: q || `[User uploaded a file: ${fileName}]`,
+          question: fullQuestion || `[File uploaded: ${fileName}]`,
           subject,
           marks: marks ? parseInt(marks) : null,
           userId: user.uid,
           sessionId: currentSessionId,
-          fileUrl,
-          fileName,
           history: messages.slice(-6).map((m) => ({
             role: m.role === "user" ? "user" : "assistant",
-            content: m.text || (m.fileName ? `[uploaded file: ${m.fileName}]` : ""),
+            content: m.text || (m.fileName ? `[uploaded: ${m.fileName}]` : ""),
           })),
         }),
       });
@@ -349,10 +362,6 @@ export default function AskAiPage() {
   function formatDate(ts: Timestamp | null) {
     if (!ts) return "";
     return ts.toDate().toLocaleDateString([], { month: "short", day: "numeric" });
-  }
-
-  function isImage(type: string | null | undefined) {
-    return type?.startsWith("image/") ?? false;
   }
 
   const activeSubject = SUBJECTS.find((s) => s.id === subject);
@@ -396,9 +405,7 @@ export default function AskAiPage() {
                       onClick={() => loadSession(sess)}
                     >
                       <div className={styles.historyInfo}>
-                        <div className={styles.historyQ}>
-                          {sess.firstQuestion}{sess.firstQuestion.length >= 80 ? "..." : ""}
-                        </div>
+                        <div className={styles.historyQ}>{sess.firstQuestion}{sess.firstQuestion.length >= 80 ? "..." : ""}</div>
                         <div className={styles.historyMeta}>{formatDate(sess.timestamp)}</div>
                       </div>
                     </button>
@@ -423,11 +430,7 @@ export default function AskAiPage() {
           <div className={styles.selectors}>
             <div className={styles.subjectTabs}>
               {SUBJECTS.map((s) => (
-                <button
-                  key={s.id}
-                  className={`${styles.subjectTab} ${subject === s.id ? styles.subjectTabActive : ""}`}
-                  onClick={() => setSubject(s.id)}
-                >
+                <button key={s.id} className={`${styles.subjectTab} ${subject === s.id ? styles.subjectTabActive : ""}`} onClick={() => setSubject(s.id)}>
                   <span>{s.icon}</span>
                   <span className={styles.subjectTabName}>{s.name}</span>
                   <span className={styles.subjectTabCode}>{s.code}</span>
@@ -447,7 +450,7 @@ export default function AskAiPage() {
                 <div className={styles.emptyChatTitle}>Ask me anything about {activeSubject?.name}</div>
                 <div className={styles.emptyChatSub}>
                   Trained on the Cambridge IGCSE syllabus, past papers, and mark schemes.
-                  {isCs && " Upload code or paste it in for help!"}
+                  {isCs && " You can also upload code files or paste code for help!"}
                 </div>
                 <div className={styles.suggestions}>
                   {[
@@ -465,46 +468,36 @@ export default function AskAiPage() {
               <div key={msg.id ?? i} className={`${styles.msgRow} ${msg.role === "user" ? styles.msgUser : styles.msgAi}`}>
                 {msg.role === "ai" && <div className={styles.aiAvatar}>✦</div>}
                 <div className={styles.msgBubbleWrap}>
-                  {msg.role === "user" && msg.marks && (
-                    <div className={styles.msgMeta}>{msg.marks} marks</div>
-                  )}
+                  {msg.role === "user" && msg.marks && <div className={styles.msgMeta}>{msg.marks} marks</div>}
                   <div className={`${styles.msgBubble} ${msg.role === "user" ? styles.bubbleUser : styles.bubbleAi}`}>
-                    {/* File attachment display */}
                     {msg.fileUrl && (
-                      isImage(msg.fileType)
+                      msg.fileType?.startsWith("image/")
                         ? <img src={msg.fileUrl} alt={msg.fileName ?? "attachment"} className={styles.attachedImage} />
-                        : <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className={styles.attachedFile}>
-                            📎 {msg.fileName}
-                          </a>
+                        : <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className={styles.attachedFile}>📎 {msg.fileName}</a>
                     )}
-                    {/* Message text with markdown */}
-                    {msg.text && (
-                      msg.role === "ai"
-                        ? renderMarkdown(msg.text, isCs)
-                        : <span>{msg.text}</span>
-                    )}
+                    {msg.text && (msg.role === "ai" ? renderMarkdown(msg.text, isCs) : <span>{msg.text}</span>)}
                   </div>
                   {msg.role === "ai" && (
-                    <button className={styles.copyBtn} onClick={() => navigator.clipboard.writeText(msg.text)}>
-                      📋 Copy
-                    </button>
+                    <button className={styles.copyBtn} onClick={() => navigator.clipboard.writeText(msg.text)}>📋 Copy</button>
                   )}
                 </div>
               </div>
             ))}
 
-            {sending && (
+            {(sending || extracting) && (
               <div className={`${styles.msgRow} ${styles.msgAi}`}>
                 <div className={styles.aiAvatar}>✦</div>
                 <div className={`${styles.msgBubble} ${styles.bubbleAi}`}>
-                  <div className={styles.typing}><span /><span /><span /></div>
+                  {extracting
+                    ? <span className={styles.extractingText}>Reading file...</span>
+                    : <div className={styles.typing}><span /><span /><span /></div>
+                  }
                 </div>
               </div>
             )}
             <div ref={bottomRef} />
           </div>
 
-          {/* File preview bar */}
           {attachedFile && (
             <div className={styles.filePreviewBar}>
               {filePreview
@@ -517,40 +510,25 @@ export default function AskAiPage() {
             </div>
           )}
 
-          {/* Input area */}
           <div className={styles.inputArea}>
-            <input
-              type="file"
-              accept={ACCEPTED_FILES}
-              ref={fileRef}
-              onChange={handleFileChange}
-              className={styles.hiddenFile}
-            />
+            <input type="file" accept={ACCEPTED_FILES} ref={fileRef} onChange={handleFileChange} className={styles.hiddenFile} />
             <button
               className={`${styles.attachBtn} ${attachedFile ? styles.attachBtnActive : ""}`}
               onClick={() => fileRef.current?.click()}
-              title="Attach file (images, PDFs, docs)"
+              title="Attach image, PDF, or document"
             >
               📎
             </button>
             <textarea
               className={styles.textInput}
-              placeholder={
-                attachedFile
-                  ? `Add a message about ${attachedFile.name}... (optional)`
-                  : `Ask about ${activeSubject?.name}... (Enter to send)`
-              }
+              placeholder={attachedFile ? `Add a message about ${attachedFile.name}... (optional)` : `Ask about ${activeSubject?.name}... (Enter to send)`}
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               onKeyDown={handleKeyDown}
               rows={2}
             />
-            <button
-              className={styles.sendBtn}
-              onClick={askQuestion}
-              disabled={sending || uploading || (!question.trim() && !attachedFile)}
-            >
-              {uploading ? "⏫" : sending ? "..." : "↑"}
+            <button className={styles.sendBtn} onClick={askQuestion} disabled={sending || uploading || extracting || (!question.trim() && !attachedFile)}>
+              {uploading || extracting ? "⏫" : sending ? "..." : "↑"}
             </button>
           </div>
         </div>
