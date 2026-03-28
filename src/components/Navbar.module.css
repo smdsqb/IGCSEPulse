@@ -157,6 +157,24 @@
   border-radius: 50%;
 }
 
+.avatarLink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  overflow: hidden;
+  text-decoration: none;
+  transition: opacity 0.2s, transform 0.15s;
+  flex-shrink: 0;
+}
+
+.avatarLink:hover {
+  opacity: 0.85;
+  transform: scale(1.05);
+}
+
 .logoutBtn {
   background: transparent;
   border: 1px solid var(--border);
