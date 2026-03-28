@@ -46,7 +46,6 @@ export default function Navbar() {
           <>
             {user ? (
               <div className={styles.userMenu}>
-                {/* Avatar → goes to settings */}
                 <Link href="/settings" className={styles.avatarLink} title="Settings">
                   {user.photoURL ? (
                     // eslint-disable-next-line @next/next/no-img-element
