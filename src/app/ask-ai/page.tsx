@@ -23,6 +23,7 @@ const SUBJECTS = [
 
 const MARKS = ["2", "4", "6", "8", "10", "12"];
 const ACCEPTED_FILES = ".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.txt";
+const MAX_FILE_SIZE_MB = 8;
 
 interface Message {
   id?: string;
@@ -147,7 +148,7 @@ function inlineMd(text: string): React.ReactNode {
 }
 
 // ── Extract text from file ───────────────────────────────────────────────────
-// PDFs go to the server-side /api/extract-pdf route (uses unpdf, no native deps).
+// PDFs always go to the server-side /api/extract-pdf route (unpdf + Mistral OCR fallback).
 // Images are read as base64 data URLs for the vision model.
 // Plain text files are read directly in the browser.
 async function extractFileText(file: File): Promise<string> {
@@ -155,16 +156,17 @@ async function extractFileText(file: File): Promise<string> {
     return await file.text();
   }
 
-  // ✅ PDF — always use the server-side route
+  // ✅ PDF — always use server route (handles text PDFs and scanned past papers via Mistral OCR)
   if (file.type === "application/pdf") {
     try {
       const formData = new FormData();
       formData.append("file", file);
       const res = await fetch("/api/extract-pdf", { method: "POST", body: formData });
+      if (!res.ok) throw new Error(`Extract API returned ${res.status}`);
       const { text } = await res.json();
       return text || "[Could not extract text from PDF]";
     } catch (err) {
-      console.error("PDF parse error:", err);
+      console.error("PDF extract error:", err);
       return "[PDF could not be read — please paste the text directly]";
     }
   }
@@ -280,6 +282,14 @@ export default function AskAiPage() {
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Reject files over the size limit before anything else
+    if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+      alert(`This file is ${(file.size / 1024 / 1024).toFixed(1)}MB. Maximum allowed size is ${MAX_FILE_SIZE_MB}MB. Please try a smaller file or paste the content directly.`);
+      if (fileRef.current) fileRef.current.value = "";
+      return;
+    }
+
     setAttachedFile(file);
     if (file.type.startsWith("image/")) {
       setFilePreview(URL.createObjectURL(file));
@@ -306,6 +316,7 @@ export default function AskAiPage() {
     let fileName: string | null = null;
     let fileType: string | null = null;
     let extractedContent: string | null = null;
+    let fileError: string | null = null;
 
     if (attachedFile) {
       setUploading(true);
@@ -319,11 +330,31 @@ export default function AskAiPage() {
         extractedContent = await extractFileText(attachedFile);
       } catch (err) {
         console.error("File processing error:", err);
+        fileError = err instanceof Error ? err.message : "Unknown error processing file";
       } finally {
         setUploading(false);
         setExtracting(false);
         clearFile();
       }
+    }
+
+    // If file processing hard-failed, show an error message in chat and stop
+    if (fileError) {
+      setSending(false);
+      if (isFirst) {
+        await setDoc(doc(db, "ai_chats", user.uid, "sessions", currentSessionId), {
+          subject,
+          firstQuestion: "File upload error",
+          timestamp: serverTimestamp(),
+        });
+        setActiveSession(currentSessionId);
+        subscribeToSession(currentSessionId);
+      }
+      await addDoc(
+        collection(db, "ai_chats", user.uid, "sessions", currentSessionId, "messages"),
+        { role: "ai", text: `Sorry, there was an error processing your file: ${fileError}. Please try again or paste the content directly.`, timestamp: serverTimestamp() }
+      );
+      return;
     }
 
     if (isFirst) {
@@ -586,7 +617,7 @@ export default function AskAiPage() {
             </div>
           )}
 
-          {/* INPUT ROW — attach | textarea | send, all on one line */}
+          {/* INPUT ROW — attach | textarea | send all on one line */}
           <div className={styles.inputArea}>
             <input type="file" accept={ACCEPTED_FILES} ref={fileRef} onChange={handleFileChange} className={styles.hiddenFile} />
             <div className={styles.inputRow}>
