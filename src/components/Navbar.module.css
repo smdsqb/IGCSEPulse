@@ -75,11 +75,12 @@
   justify-content: center;
 }
 
-.ttBtn.active {
+/* FIX: Ensure pure selector for combined classes */
+.ttBtn:global(.active) {
   background: var(--pulse);
 }
 
-.ttBtn:hover:not(.active) {
+.ttBtn:hover:not(:global(.active)) {
   background: var(--border);
 }
 
@@ -158,16 +159,6 @@
   color: var(--pulse);
 }
 
-@media (max-width: 800px) {
-  .nav {
-    padding: 14px 20px;
-  }
-
-  .navLinks {
-    display: none;
-  }
-}
-
 .avatarLink {
   display: flex;
   align-items: center;
@@ -180,4 +171,18 @@
   transition: opacity 0.2s, transform 0.15s;
   flex-shrink: 0;
 }
-.avatarLink:hover { opacity: 0.85; transform: scale(1.05); }
+
+.avatarLink:hover { 
+  opacity: 0.85; 
+  transform: scale(1.05); 
+}
+
+@media (max-width: 800px) {
+  .nav {
+    padding: 14px 20px;
+  }
+
+  .navLinks {
+    display: none;
+  }
+}
