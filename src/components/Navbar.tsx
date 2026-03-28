@@ -25,7 +25,7 @@ function AboutModal({ onClose }: { onClose: () => void }) {
           <div className={styles.teamCard}>
             <div className={styles.teamAvatar}>👨‍💻</div>
             <div className={styles.teamName}>Shaik Mahammad Saqib</div>
-            <div className={styles.teamRole}>Co-Founder & Developer</div>
+            <div className={styles.teamRole}>Founder & Developer</div>
             <div className={styles.teamBio}>A guy who thought using AI to check his handwritten business studies answers during IGCSEs would be a genius move. Turns out, AI can't read chicken scratch. So he roped the other two into building this site instead. What you see here? Yeah, that's his revenge on bad handwriting</div>
           </div>
 
