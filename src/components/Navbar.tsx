@@ -17,7 +17,6 @@ export default function Navbar() {
     router.push("/");
   }
 
-  // Get initials from display name or email
   const initials = user
     ? (user.displayName
         ? user.displayName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
@@ -34,44 +33,29 @@ export default function Navbar() {
         <Link href="/dashboard">Dashboard</Link>
         <Link href="/subjects">Subjects</Link>
         <Link href="/resources">Resources</Link>
-        <Link href="/ask-ai" className={styles.aiLink}>
-          Ask AI ✦
-        </Link>
+        <Link href="/ask-ai" className={styles.aiLink}>Ask AI ✦</Link>
       </div>
 
       <div className={styles.navRight}>
         <div className={styles.themeToggle}>
-          <button
-            className={`${styles.ttBtn} ${theme === "dark" ? styles.active : ""}`}
-            onClick={() => setTheme("dark")}
-            title="Dark mode"
-          >
-            🌙
-          </button>
-          <button
-            className={`${styles.ttBtn} ${theme === "light" ? styles.active : ""}`}
-            onClick={() => setTheme("light")}
-            title="Light mode"
-          >
-            ☀️
-          </button>
+          <button className={`${styles.ttBtn} ${theme === "dark" ? styles.active : ""}`} onClick={() => setTheme("dark")} title="Dark mode">🌙</button>
+          <button className={`${styles.ttBtn} ${theme === "light" ? styles.active : ""}`} onClick={() => setTheme("light")} title="Light mode">☀️</button>
         </div>
 
         {!loading && (
           <>
             {user ? (
               <div className={styles.userMenu}>
-                <div className={styles.avatar} title={user.displayName ?? user.email ?? ""}>
+                {/* Avatar → goes to settings */}
+                <Link href="/settings" className={styles.avatarLink} title="Settings">
                   {user.photoURL ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={user.photoURL} alt="avatar" className={styles.avatarImg} />
                   ) : (
-                    initials
+                    <div className={styles.avatar}>{initials}</div>
                   )}
-                </div>
-                <button className={styles.logoutBtn} onClick={handleLogout}>
-                  Sign Out
-                </button>
+                </Link>
+                <button className={styles.logoutBtn} onClick={handleLogout}>Sign Out</button>
               </div>
             ) : (
               <>
