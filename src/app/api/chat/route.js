@@ -32,16 +32,7 @@ function getAdminDb() {
 
 export async function POST(request) {
   try {
-    const { 
-      question, 
-      subject, 
-      marks, 
-      userId, 
-      sessionId, 
-      history = [], 
-      imageBase64, 
-      imageType 
-    } = await request.json();
+    const { question, subject, marks, userId, sessionId, history = [], imageBase64, imageType } = await request.json();
 
     const data = syllabuses[subject];
     if (!data) {
@@ -55,40 +46,40 @@ Topics: ${data.syllabus.topics?.map((t) => t.topicName).join(', ') || ''}
 Rules:
 - Answer based on the Cambridge IGCSE syllabus and any file content the student shares.
 - When the user uploads an image, carefully analyse it and help them with its content in the context of IGCSE ${data.name}.
-- For ${marks || 'any'} marks, follow the Cambridge marking scheme format (AO1 Knowledge, AO2 Application, AO3 Analysis, AO4 Evaluation).
-- For 6+ marks, always include a final justified evaluation/judgement.
+- For ${marks || 'any'} marks, follow the Cambridge marking scheme format.
+- For 6+ marks, always include evaluation/judgement.
 - Be concise, student-friendly, and examiner-accurate.
 - You have access to the conversation history. Maintain context across messages.
 
-Formatting rules (STRICTLY FOLLOW THESE):
-- Use ### for section headings (e.g. ### Knowledge, ### Analysis, ### Evaluation).
-- Use **bold** for key terms, definitions, and marks-earning points.
-- Use bullet points (- ) for lists or specific marking points.
-- Use numbered lists (1. 2. 3.) ONLY for step-by-step procedures or chronological processes.
-- Separate distinct sections with a blank line.
-- Do not use asterisks for decoration, only for **bolding**.
-- Structure answers as: ### Point → ### Evidence → ### Explanation → ### Evaluation.`;
+Formatting rules (ALWAYS follow these):
+- Use **bold** for key terms, headings, and important points (e.g. **Point**, **Evaluation**).
+- Use bullet points (- ) for lists of points or examples.
+- Use numbered lists (1. 2. 3.) for step-by-step answers or mark scheme structures.
+- Use ### for section headings (e.g. ### Point, ### Evidence, ### Explanation, ### Evaluation).
+- For mark scheme answers, always structure as: ### Point → ### Evidence → ### Explanation → ### Evaluation.
+- Separate sections with a blank line.
+- Never use asterisks as decorative symbols — only for **bold** and *italic*.
+- Keep responses well-structured and easy to read.`;
 
     // Determine if this is an image message needing vision model
     const isImageMessage = !!(imageBase64 && imageType);
-    
-    // Using high-reasoning models for examiner accuracy
     const model = isImageMessage
-      ? 'llama-3.2-11b-vision-preview' 
+      ? 'meta-llama/llama-4-scout-17b-16e-instruct'
       : 'llama-3.3-70b-versatile';
 
+    // Build user content — vision format for images, plain string for text
     let userContent;
     if (isImageMessage) {
       userContent = [
-        {
-          type: 'text',
-          text: question || 'Please analyse this image in the context of my IGCSE studies.',
-        },
         {
           type: 'image_url',
           image_url: {
             url: `data:${imageType};base64,${imageBase64}`,
           },
+        },
+        {
+          type: 'text',
+          text: question || 'Please analyse this image and help me with any IGCSE-related content.',
         },
       ];
     } else {
@@ -97,7 +88,7 @@ Formatting rules (STRICTLY FOLLOW THESE):
 
     const chatMessages = [
       { role: 'system', content: systemPrompt },
-      ...history.slice(-6), // Keep context while managing token limits
+      ...history.slice(-6),
       { role: 'user', content: userContent },
     ];
 
@@ -109,8 +100,8 @@ Formatting rules (STRICTLY FOLLOW THESE):
       },
       body: JSON.stringify({
         model,
-        max_tokens: 1200,
-        temperature: 0.2, // Lower temperature for higher factual accuracy
+        max_tokens: 1000,
+        temperature: 0.3,
         messages: chatMessages,
       }),
     });
@@ -118,19 +109,20 @@ Formatting rules (STRICTLY FOLLOW THESE):
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Groq API error:', response.status, errorText);
-      return NextResponse.json({ reply: `AI service error. Please try again.` }, { status: response.status });
+      return NextResponse.json({ reply: `AI service error: ${response.status}. Please try again.` });
     }
 
     const result = await response.json();
-    const answer = result.choices?.[0]?.message?.content;
 
-    if (!answer) {
-      return NextResponse.json({ reply: 'I could not generate a response. Please rephrase your question.' });
+    if (!result.choices?.[0]) {
+      console.error('Invalid Groq response:', result);
+      return NextResponse.json({ reply: 'Sorry, I received an invalid response. Please try again.' });
     }
 
-    // Background Firebase update
-    if (userId && userId !== 'anonymous' && sessionId) {
-      try {
+    const answer = result.choices[0].message.content;
+
+    try {
+      if (userId && userId !== 'anonymous' && sessionId) {
         const adminDb = getAdminDb();
         await adminDb
           .collection('ai_chats')
@@ -138,19 +130,15 @@ Formatting rules (STRICTLY FOLLOW THESE):
           .collection('sessions')
           .doc(sessionId)
           .set({ lastActivity: new Date() }, { merge: true });
-      } catch (dbError) {
-        console.error('Firebase silent error:', dbError);
       }
+    } catch (dbError) {
+      console.error('Firebase update error:', dbError);
     }
 
-    return NextResponse.json({ 
-      reply: answer, 
-      code: data.code,
-      subjectName: data.name 
-    });
+    return NextResponse.json({ reply: answer, code: data.code });
 
   } catch (error) {
-    console.error('Final API Catch:', error);
-    return NextResponse.json({ reply: 'An unexpected error occurred. Please try again.' }, { status: 500 });
+    console.error('API Error:', error);
+    return NextResponse.json({ reply: `Error: ${error.message || 'Please try again.'}` }, { status: 500 });
   }
 }
