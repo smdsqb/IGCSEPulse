@@ -29,7 +29,7 @@ const resources = [
     title: "AI Explanations",
     desc: "Get any concept explained in plain English, tailored to your IGCSE syllabus, powered by AI.",
     color: "colorTeal",
-    tag: "Coming Soon",
+    tag: "Powered by Groq API",
   },
 ];
 
