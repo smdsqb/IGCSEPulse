@@ -257,8 +257,55 @@
   display: flex;
   flex-direction: column;
 }
-[data-theme-preview="dark"] { background: #0D0B14; }
-[data-theme-preview="light"] { background: #F7F5FF; }
+/* THEME CARDS */
+.themeCards { display: flex; gap: 16px; }
+.themeCard {
+  flex: 1;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.15s;
+  position: relative;
+  text-align: center;
+}
+.themeCard:hover { transform: translateY(-2px); border-color: rgba(155,127,212,0.4); }
+.themeCardActive { border-color: var(--pulse) !important; }
+.themePreview {
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 10px;
+  height: 80px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* FIX: Wrapped in :global to satisfy CSS Module purity rules */
+:global([data-theme-preview="dark"]) { background: #0D0B14; }
+:global([data-theme-preview="light"]) { background: #F7F5FF; }
+
+.tpNav {
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* FIX: Specific nested selectors also need the :global wrapper on the parent */
+:global([data-theme-preview="dark"]) .tpNav { background: #13101F; }
+:global([data-theme-preview="light"]) .tpNav { background: #EEEAF8; }
+
+.tpContent {
+  flex: 1;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tpContent div { border-radius: 3px; height: 6px; }
+
+/* FIX: Final nested state fixes */
+:global([data-theme-preview="dark"]) .tpContent div { background: #1A1628; }
+:global([data-theme-preview="light"]) .tpContent div { background: #fff; }
 .tpNav {
   height: 16px;
   flex-shrink: 0;
