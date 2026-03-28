@@ -33,6 +33,9 @@ interface Message {
   fileUrl?: string | null;
   fileName?: string | null;
   fileType?: string | null;
+  // extractedText is stored in session state only (not Firestore) so the AI
+  // can reference file content across messages without re-uploading.
+  extractedText?: string | null;
   timestamp?: Timestamp | null;
 }
 
@@ -148,15 +151,12 @@ function inlineMd(text: string): React.ReactNode {
 }
 
 // ── Extract text from file ───────────────────────────────────────────────────
-// PDFs always go to the server-side /api/extract-pdf route (unpdf + Mistral OCR fallback).
-// Images are read as base64 data URLs for the vision model.
-// Plain text files are read directly in the browser.
 async function extractFileText(file: File): Promise<string> {
   if (file.type === "text/plain" || file.name.endsWith(".txt")) {
     return await file.text();
   }
 
-  // ✅ PDF — always use server route (handles text PDFs and scanned past papers via Mistral OCR)
+  // ✅ PDF — always use server route (unpdf + Mistral OCR fallback)
   if (file.type === "application/pdf") {
     try {
       const formData = new FormData();
@@ -171,7 +171,7 @@ async function extractFileText(file: File): Promise<string> {
     }
   }
 
-  // Images — return base64 data URL (handled separately for vision model)
+  // Images — base64 data URL for vision model
   if (file.type.startsWith("image/")) {
     return await new Promise((resolve) => {
       const reader = new FileReader();
@@ -180,12 +180,27 @@ async function extractFileText(file: File): Promise<string> {
     });
   }
 
-  // .docx / other — read as text best-effort
-  try {
-    return await file.text();
-  } catch {
-    return `[File: ${file.name} — could not extract text]`;
-  }
+  try { return await file.text(); }
+  catch { return `[File: ${file.name} — could not extract text]`; }
+}
+
+// ── Build history for API, injecting file content into the message that had it
+function buildHistory(messages: Message[]) {
+  return messages.map((m) => {
+    // For user messages that had a file, re-embed the extracted text so the AI
+    // always has access to it in subsequent turns — no re-upload needed.
+    if (m.role === "user" && m.extractedText && !m.extractedText.startsWith("data:")) {
+      const fileContext = `[File: "${m.fileName}"]\n${m.extractedText.slice(0, 3000)}`;
+      return {
+        role: "user" as const,
+        content: m.text ? `${m.text}\n\n${fileContext}` : fileContext,
+      };
+    }
+    return {
+      role: m.role === "user" ? "user" as const : "assistant" as const,
+      content: m.text || (m.fileName ? `[uploaded: ${m.fileName}]` : ""),
+    };
+  });
 }
 
 export default function AskAiPage() {
@@ -282,14 +297,11 @@ export default function AskAiPage() {
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    // Reject files over the size limit before anything else
     if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
-      alert(`This file is ${(file.size / 1024 / 1024).toFixed(1)}MB. Maximum allowed size is ${MAX_FILE_SIZE_MB}MB. Please try a smaller file or paste the content directly.`);
+      alert(`This file is ${(file.size / 1024 / 1024).toFixed(1)}MB. Maximum allowed size is ${MAX_FILE_SIZE_MB}MB.`);
       if (fileRef.current) fileRef.current.value = "";
       return;
     }
-
     setAttachedFile(file);
     if (file.type.startsWith("image/")) {
       setFilePreview(URL.createObjectURL(file));
@@ -338,14 +350,11 @@ export default function AskAiPage() {
       }
     }
 
-    // If file processing hard-failed, show an error message in chat and stop
     if (fileError) {
       setSending(false);
       if (isFirst) {
         await setDoc(doc(db, "ai_chats", user.uid, "sessions", currentSessionId), {
-          subject,
-          firstQuestion: "File upload error",
-          timestamp: serverTimestamp(),
+          subject, firstQuestion: "File upload error", timestamp: serverTimestamp(),
         });
         setActiveSession(currentSessionId);
         subscribeToSession(currentSessionId);
@@ -367,10 +376,31 @@ export default function AskAiPage() {
       subscribeToSession(currentSessionId);
     }
 
-    await addDoc(
+    // Save user message to Firestore (extractedText stored in local state only)
+    const userMsg: Message = {
+      role: "user",
+      text: q,
+      marks: marks || null,
+      fileUrl: fileUrl || null,
+      fileName: fileName || null,
+      fileType: fileType || null,
+      extractedText: extractedContent || null,
+      timestamp: null,
+    };
+
+    const userDocRef = await addDoc(
       collection(db, "ai_chats", user.uid, "sessions", currentSessionId, "messages"),
       { role: "user", text: q, marks: marks || null, fileUrl: fileUrl || null, fileName: fileName || null, fileType: fileType || null, timestamp: serverTimestamp() }
     );
+
+    // Keep extractedText in local state so future turns can reference it
+    setMessages(prev => {
+      const exists = prev.some(m => m.id === userDocRef.id);
+      if (exists) {
+        return prev.map(m => m.id === userDocRef.id ? { ...m, extractedText: extractedContent } : m);
+      }
+      return [...prev, { ...userMsg, id: userDocRef.id }];
+    });
 
     let imageBase64: string | null = null;
     let imageType: string | null = null;
@@ -378,13 +408,13 @@ export default function AskAiPage() {
 
     if (extractedContent && fileType?.startsWith("image/")) {
       const match = extractedContent.match(/^data:([^;]+);base64,(.+)$/);
-      if (match) {
-        imageType = match[1];
-        imageBase64 = match[2];
-      }
+      if (match) { imageType = match[1]; imageBase64 = match[2]; }
     } else if (extractedContent && !fileType?.startsWith("image/")) {
       fullQuestion = `${q ? q + "\n\n" : ""}[The user has uploaded a file: "${fileName}". Here is its content:]\n\n${extractedContent.slice(0, 4000)}`;
     }
+
+    // Build history including file content from previous messages
+    const historyForApi = buildHistory(messages.slice(-6));
 
     try {
       const res = await fetch("/api/chat", {
@@ -398,10 +428,7 @@ export default function AskAiPage() {
           sessionId: currentSessionId,
           imageBase64: imageBase64 || undefined,
           imageType: imageType || undefined,
-          history: messages.slice(-6).map((m) => ({
-            role: m.role === "user" ? "user" : "assistant",
-            content: m.text || (m.fileName ? `[uploaded: ${m.fileName}]` : ""),
-          })),
+          history: historyForApi,
         }),
       });
       const data = await res.json();
@@ -419,37 +446,70 @@ export default function AskAiPage() {
     }
   }
 
+  // Regenerate: replaces last AI response instead of appending a new one,
+  // and includes full history with file context so no re-upload needed.
   async function regenerateLastResponse() {
     if (sending || !user) return;
+
+    // Find the last AI message index and last user message
+    const lastAiIndex = [...messages].map((m, i) => ({ m, i })).reverse().find(({ m }) => m.role === "ai");
     const lastUser = [...messages].reverse().find(m => m.role === "user");
-    if (!lastUser) return;
+    if (!lastAiIndex || !lastUser) return;
+
+    const lastAiMsg = lastAiIndex.m;
     setSending(true);
+
     try {
+      // Build history up to (but not including) the last AI message
+      const historyUpToLastAi = buildHistory(messages.slice(0, lastAiIndex.i));
+
+      // Rebuild the user question with file content if it had one
+      let regenQuestion = lastUser.text || `[File: ${lastUser.fileName}]`;
+      if (lastUser.extractedText && !lastUser.extractedText.startsWith("data:")) {
+        regenQuestion = `${lastUser.text ? lastUser.text + "\n\n" : ""}[The user has uploaded a file: "${lastUser.fileName}". Here is its content:]\n\n${lastUser.extractedText.slice(0, 4000)}`;
+      }
+
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          question: lastUser.text || `[File: ${lastUser.fileName}]`,
+          question: regenQuestion,
           subject,
           marks: lastUser.marks ? parseInt(lastUser.marks) : null,
           userId: user.uid,
           sessionId,
-          history: messages.slice(-8, -2).map(m => ({
-            role: m.role === "user" ? "user" : "assistant",
-            content: m.text || "",
-          })),
+          history: historyUpToLastAi,
+          imageBase64: (() => {
+            if (lastUser.extractedText?.startsWith("data:")) {
+              const m = lastUser.extractedText.match(/^data:([^;]+);base64,(.+)$/);
+              return m ? m[2] : undefined;
+            }
+          })(),
+          imageType: (() => {
+            if (lastUser.extractedText?.startsWith("data:")) {
+              const m = lastUser.extractedText.match(/^data:([^;]+);base64,(.+)$/);
+              return m ? m[1] : undefined;
+            }
+          })(),
         }),
       });
       const data = await res.json();
-      await addDoc(
-        collection(db, "ai_chats", user.uid, "sessions", sessionId, "messages"),
-        { role: "ai", text: data.reply ?? "Sorry, something went wrong.", timestamp: serverTimestamp() }
-      );
+      const newText = data.reply ?? "Sorry, something went wrong.";
+
+      // Update the existing AI message doc in Firestore instead of adding a new one
+      if (lastAiMsg.id) {
+        const msgRef = doc(db, "ai_chats", user.uid, "sessions", sessionId, "messages", lastAiMsg.id);
+        await import("firebase/firestore").then(({ updateDoc }) =>
+          updateDoc(msgRef, { text: newText, timestamp: serverTimestamp() })
+        );
+      } else {
+        await addDoc(
+          collection(db, "ai_chats", user.uid, "sessions", sessionId, "messages"),
+          { role: "ai", text: newText, timestamp: serverTimestamp() }
+        );
+      }
     } catch {
-      await addDoc(
-        collection(db, "ai_chats", user.uid, "sessions", sessionId, "messages"),
-        { role: "ai", text: "Sorry, something went wrong. Please try again.", timestamp: serverTimestamp() }
-      );
+      // silently fail — don't clobber the existing message
     } finally {
       setSending(false);
     }
@@ -617,7 +677,6 @@ export default function AskAiPage() {
             </div>
           )}
 
-          {/* INPUT ROW — attach | textarea | send all on one line */}
           <div className={styles.inputArea}>
             <input type="file" accept={ACCEPTED_FILES} ref={fileRef} onChange={handleFileChange} className={styles.hiddenFile} />
             <div className={styles.inputRow}>
@@ -625,9 +684,7 @@ export default function AskAiPage() {
                 className={`${styles.attachBtn} ${attachedFile ? styles.attachBtnActive : ""}`}
                 onClick={() => fileRef.current?.click()}
                 title="Attach image, PDF, or document"
-              >
-                📎
-              </button>
+              >📎</button>
               <textarea
                 className={styles.textInput}
                 placeholder={attachedFile ? `Add a message about ${attachedFile.name}... (optional)` : `Ask about ${activeSubject?.name}... (Enter to send)`}
