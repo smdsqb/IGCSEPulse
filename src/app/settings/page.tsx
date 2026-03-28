@@ -4,11 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
-import { db, storage, auth } from "@/lib/firebase";
-import {
-  doc, getDoc, setDoc, deleteDoc, collection,
-  getDocs, updateDoc,
-} from "firebase/firestore";
+import { db, storage } from "@/lib/firebase";
+import { doc, getDoc, setDoc, deleteDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import {
   updateProfile, updateEmail, updatePassword,
@@ -20,12 +17,12 @@ import Link from "next/link";
 import styles from "./settings.module.css";
 
 const SUBJECTS = [
-  { id: "english",         name: "English",          icon: "📖" },
-  { id: "maths",           name: "Mathematics",       icon: "📐" },
-  { id: "cs",              name: "Computer Science",  icon: "💻" },
-  { id: "business",        name: "Business Studies",  icon: "📊" },
-  { id: "physics",         name: "Physics",           icon: "⚡" },
-  { id: "chemistry",       name: "Chemistry",         icon: "🧪" },
+  { id: "english",   name: "English",          icon: "📖" },
+  { id: "maths",     name: "Mathematics",       icon: "📐" },
+  { id: "cs",        name: "Computer Science",  icon: "💻" },
+  { id: "business",  name: "Business Studies",  icon: "📊" },
+  { id: "physics",   name: "Physics",           icon: "⚡" },
+  { id: "chemistry", name: "Chemistry",         icon: "🧪" },
 ];
 
 type Tab = "profile" | "account" | "notifications" | "appearance" | "communities" | "danger";
@@ -35,20 +32,20 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const router = useRouter();
 
-  const [tab, setTab]                         = useState<Tab>("profile");
-  const [displayName, setDisplayName]         = useState("");
-  const [avatarFile, setAvatarFile]           = useState<File | null>(null);
-  const [avatarPreview, setAvatarPreview]     = useState<string | null>(null);
-  const [newEmail, setNewEmail]               = useState("");
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword]         = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [tab, setTab]                             = useState<Tab>("profile");
+  const [displayName, setDisplayName]             = useState("");
+  const [avatarFile, setAvatarFile]               = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview]         = useState<string | null>(null);
+  const [newEmail, setNewEmail]                   = useState("");
+  const [currentPassword, setCurrentPassword]     = useState("");
+  const [newPassword, setNewPassword]             = useState("");
+  const [confirmPassword, setConfirmPassword]     = useState("");
   const [joinedCommunities, setJoinedCommunities] = useState<string[]>([]);
-  const [notifSettings, setNotifSettings]     = useState({ newReplies: true, announcements: true, aiUpdates: true });
-  const [saving, setSaving]                   = useState(false);
-  const [msg, setMsg]                         = useState<{ type: "success" | "error"; text: string } | null>(null);
-  const [deleteConfirm, setDeleteConfirm]     = useState("");
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [notifSettings, setNotifSettings]         = useState({ newReplies: true, announcements: true, aiUpdates: true });
+  const [saving, setSaving]                       = useState(false);
+  const [msg, setMsg]                             = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [deleteConfirm, setDeleteConfirm]         = useState("");
+  const [showDeleteModal, setShowDeleteModal]     = useState(false);
   const avatarRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -79,7 +76,6 @@ export default function SettingsPage() {
     setAvatarPreview(URL.createObjectURL(file));
   }
 
-  // ── Save profile ────────────────────────────────────────────────────────────
   async function saveProfile() {
     if (!user) return;
     setSaving(true);
@@ -104,7 +100,6 @@ export default function SettingsPage() {
     }
   }
 
-  // ── Save email ──────────────────────────────────────────────────────────────
   async function saveEmail() {
     if (!user || !newEmail || !currentPassword) return;
     setSaving(true);
@@ -113,8 +108,7 @@ export default function SettingsPage() {
       await reauthenticateWithCredential(user, credential);
       await updateEmail(user, newEmail);
       showMsg("success", "Email updated!");
-      setNewEmail("");
-      setCurrentPassword("");
+      setNewEmail(""); setCurrentPassword("");
     } catch (err: unknown) {
       showMsg("error", (err as Error).message ?? "Failed to update email.");
     } finally {
@@ -122,7 +116,6 @@ export default function SettingsPage() {
     }
   }
 
-  // ── Save password ───────────────────────────────────────────────────────────
   async function savePassword() {
     if (!user || !currentPassword || !newPassword) return;
     if (newPassword !== confirmPassword) return showMsg("error", "Passwords don't match.");
@@ -133,9 +126,7 @@ export default function SettingsPage() {
       await reauthenticateWithCredential(user, credential);
       await updatePassword(user, newPassword);
       showMsg("success", "Password updated!");
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
+      setCurrentPassword(""); setNewPassword(""); setConfirmPassword("");
     } catch (err: unknown) {
       showMsg("error", (err as Error).message ?? "Failed to update password.");
     } finally {
@@ -143,7 +134,6 @@ export default function SettingsPage() {
     }
   }
 
-  // ── Save notifications ──────────────────────────────────────────────────────
   async function saveNotifications() {
     if (!user) return;
     setSaving(true);
@@ -157,7 +147,6 @@ export default function SettingsPage() {
     }
   }
 
-  // ── Leave community ─────────────────────────────────────────────────────────
   async function leaveCommunity(subjectId: string) {
     if (!user) return;
     const updated = joinedCommunities.filter((s) => s !== subjectId);
@@ -166,23 +155,26 @@ export default function SettingsPage() {
     showMsg("success", `Left c/${subjectId}`);
   }
 
-  // ── Delete account ──────────────────────────────────────────────────────────
+  async function joinCommunity(subjectId: string) {
+    if (!user) return;
+    const updated = [...joinedCommunities, subjectId];
+    await setDoc(doc(db, "users", user.uid), { joinedSubjects: updated }, { merge: true });
+    setJoinedCommunities(updated);
+    showMsg("success", `Joined c/${subjectId}!`);
+  }
+
   async function deleteAccount() {
     if (!user || deleteConfirm !== "DELETE") return;
     setSaving(true);
     try {
-      // Try Google re-auth first, fallback to email
       const isGoogle = user.providerData.some((p) => p.providerId === "google.com");
       if (isGoogle) {
-        const provider = new GoogleAuthProvider();
-        await reauthenticateWithPopup(user, provider);
+        await reauthenticateWithPopup(user, new GoogleAuthProvider());
       } else if (currentPassword) {
         const credential = EmailAuthProvider.credential(user.email!, currentPassword);
         await reauthenticateWithCredential(user, credential);
       }
-      // Delete user Firestore data
       await deleteDoc(doc(db, "users", user.uid));
-      // Delete the Firebase Auth account
       await deleteUser(user);
       router.push("/");
     } catch (err: unknown) {
@@ -195,12 +187,12 @@ export default function SettingsPage() {
   const isGoogleUser = user?.providerData.some((p) => p.providerId === "google.com");
 
   const TABS: { id: Tab; label: string; icon: string }[] = [
-    { id: "profile",       label: "Profile",        icon: "👤" },
-    { id: "account",       label: "Account",         icon: "🔐" },
-    { id: "notifications", label: "Notifications",   icon: "🔔" },
-    { id: "appearance",    label: "Appearance",      icon: "🎨" },
-    { id: "communities",   label: "Communities",     icon: "💬" },
-    { id: "danger",        label: "Danger Zone",     icon: "⚠️" },
+    { id: "profile",       label: "Profile",      icon: "👤" },
+    { id: "account",       label: "Account",       icon: "🔐" },
+    { id: "notifications", label: "Notifications", icon: "🔔" },
+    { id: "appearance",    label: "Appearance",    icon: "🎨" },
+    { id: "communities",   label: "Communities",   icon: "💬" },
+    { id: "danger",        label: "Danger Zone",   icon: "⚠️" },
   ];
 
   if (loading || !user) return (
@@ -211,7 +203,6 @@ export default function SettingsPage() {
     <>
       <Navbar />
       <div className={styles.page}>
-        {/* SIDEBAR */}
         <aside className={styles.sidebar}>
           <div className={styles.sidebarTitle}>Settings</div>
           {TABS.map((t) => (
@@ -226,30 +217,24 @@ export default function SettingsPage() {
           ))}
         </aside>
 
-        {/* MAIN */}
         <main className={styles.main}>
-          {/* Toast */}
           {msg && (
             <div className={`${styles.toast} ${msg.type === "success" ? styles.toastSuccess : styles.toastError}`}>
               {msg.type === "success" ? "✓" : "✕"} {msg.text}
             </div>
           )}
 
-          {/* ── PROFILE ── */}
+          {/* PROFILE */}
           {tab === "profile" && (
             <div className={styles.section}>
               <div className={styles.sectionTitle}>Profile</div>
               <div className={styles.sectionSub}>How you appear to other students on IGCSEPulse.</div>
-
-              {/* Avatar */}
               <div className={styles.avatarSection}>
                 <div className={styles.avatarBig} onClick={() => avatarRef.current?.click()}>
-                  {(avatarPreview || user.photoURL) ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={avatarPreview ?? user.photoURL!} alt="avatar" />
-                  ) : (
-                    <span>{user.displayName?.[0]?.toUpperCase() ?? user.email?.[0]?.toUpperCase() ?? "?"}</span>
-                  )}
+                  {(avatarPreview || user.photoURL)
+                    ? <img src={avatarPreview ?? user.photoURL!} alt="avatar" />  // eslint-disable-line
+                    : <span>{user.displayName?.[0]?.toUpperCase() ?? user.email?.[0]?.toUpperCase() ?? "?"}</span>
+                  }
                   <div className={styles.avatarOverlay}>📷</div>
                 </div>
                 <input ref={avatarRef} type="file" accept="image/*" className={styles.hidden} onChange={handleAvatarChange} />
@@ -258,30 +243,26 @@ export default function SettingsPage() {
                   <div className={styles.avatarHint}>Click avatar to change photo</div>
                 </div>
               </div>
-
               <div className={styles.field}>
                 <label>Display Name</label>
                 <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Your name" />
               </div>
-
               <div className={styles.field}>
                 <label>Email</label>
                 <input type="email" value={user.email ?? ""} disabled className={styles.disabledInput} />
                 <span className={styles.fieldHint}>Change email in the Account tab</span>
               </div>
-
               <button className={styles.saveBtn} onClick={saveProfile} disabled={saving}>
                 {saving ? "Saving..." : "Save Profile"}
               </button>
             </div>
           )}
 
-          {/* ── ACCOUNT ── */}
+          {/* ACCOUNT */}
           {tab === "account" && (
             <div className={styles.section}>
               <div className={styles.sectionTitle}>Account</div>
               <div className={styles.sectionSub}>Manage your login credentials.</div>
-
               {isGoogleUser ? (
                 <div className={styles.infoCard}>
                   <span>🔗</span>
@@ -294,54 +275,32 @@ export default function SettingsPage() {
                 <>
                   <div className={styles.subSection}>
                     <div className={styles.subSectionTitle}>Change Email</div>
-                    <div className={styles.field}>
-                      <label>New Email</label>
-                      <input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="new@email.com" />
-                    </div>
-                    <div className={styles.field}>
-                      <label>Current Password</label>
-                      <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="••••••••" />
-                    </div>
-                    <button className={styles.saveBtn} onClick={saveEmail} disabled={saving || !newEmail || !currentPassword}>
-                      {saving ? "Saving..." : "Update Email"}
-                    </button>
+                    <div className={styles.field}><label>New Email</label><input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="new@email.com" /></div>
+                    <div className={styles.field}><label>Current Password</label><input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="••••••••" /></div>
+                    <button className={styles.saveBtn} onClick={saveEmail} disabled={saving || !newEmail || !currentPassword}>{saving ? "Saving..." : "Update Email"}</button>
                   </div>
-
                   <div className={styles.divider} />
-
                   <div className={styles.subSection}>
                     <div className={styles.subSectionTitle}>Change Password</div>
-                    <div className={styles.field}>
-                      <label>Current Password</label>
-                      <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="••••••••" />
-                    </div>
-                    <div className={styles.field}>
-                      <label>New Password</label>
-                      <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Min. 6 characters" />
-                    </div>
-                    <div className={styles.field}>
-                      <label>Confirm New Password</label>
-                      <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" />
-                    </div>
-                    <button className={styles.saveBtn} onClick={savePassword} disabled={saving || !currentPassword || !newPassword}>
-                      {saving ? "Saving..." : "Update Password"}
-                    </button>
+                    <div className={styles.field}><label>Current Password</label><input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="••••••••" /></div>
+                    <div className={styles.field}><label>New Password</label><input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Min. 6 characters" /></div>
+                    <div className={styles.field}><label>Confirm New Password</label><input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" /></div>
+                    <button className={styles.saveBtn} onClick={savePassword} disabled={saving || !currentPassword || !newPassword}>{saving ? "Saving..." : "Update Password"}</button>
                   </div>
                 </>
               )}
             </div>
           )}
 
-          {/* ── NOTIFICATIONS ── */}
+          {/* NOTIFICATIONS */}
           {tab === "notifications" && (
             <div className={styles.section}>
               <div className={styles.sectionTitle}>Notifications</div>
               <div className={styles.sectionSub}>Choose what you want to be notified about.</div>
-
               {[
-                { key: "newReplies",    label: "New replies to your posts",       sub: "Get notified when someone replies to your community posts" },
-                { key: "announcements", label: "Platform announcements",           sub: "Important updates about IGCSEPulse features and changes" },
-                { key: "aiUpdates",     label: "AI tutor updates",                sub: "When new subjects or features are added to Ask AI" },
+                { key: "newReplies",    label: "New replies to your posts",  sub: "Get notified when someone replies to your community posts" },
+                { key: "announcements", label: "Platform announcements",      sub: "Important updates about IGCSEPulse features and changes" },
+                { key: "aiUpdates",     label: "AI tutor updates",           sub: "When new subjects or features are added to Ask AI" },
               ].map((item) => (
                 <div key={item.key} className={styles.toggleRow}>
                   <div>
@@ -356,47 +315,31 @@ export default function SettingsPage() {
                   </button>
                 </div>
               ))}
-
-              <button className={styles.saveBtn} onClick={saveNotifications} disabled={saving}>
-                {saving ? "Saving..." : "Save Preferences"}
-              </button>
+              <button className={styles.saveBtn} onClick={saveNotifications} disabled={saving}>{saving ? "Saving..." : "Save Preferences"}</button>
             </div>
           )}
 
-          {/* ── APPEARANCE ── */}
+          {/* APPEARANCE */}
           {tab === "appearance" && (
             <div className={styles.section}>
               <div className={styles.sectionTitle}>Appearance</div>
               <div className={styles.sectionSub}>Customise how IGCSEPulse looks for you.</div>
-
               <div className={styles.themeCards}>
-                <button
-                  className={`${styles.themeCard} ${theme === "dark" ? styles.themeCardActive : ""}`}
-                  onClick={() => setTheme("dark")}
-                >
-                  <div className={styles.themePreview} data-theme-preview="dark">
-                    <div className={styles.tpNav} />
-                    <div className={styles.tpContent}><div /><div /><div /></div>
-                  </div>
-                  <div className={styles.themeCardLabel}>🌙 Dark</div>
-                  {theme === "dark" && <div className={styles.themeCardCheck}>✓</div>}
-                </button>
-                <button
-                  className={`${styles.themeCard} ${theme === "light" ? styles.themeCardActive : ""}`}
-                  onClick={() => setTheme("light")}
-                >
-                  <div className={styles.themePreview} data-theme-preview="light">
-                    <div className={styles.tpNav} />
-                    <div className={styles.tpContent}><div /><div /><div /></div>
-                  </div>
-                  <div className={styles.themeCardLabel}>☀️ Light</div>
-                  {theme === "light" && <div className={styles.themeCardCheck}>✓</div>}
-                </button>
+                {(["dark", "light"] as const).map((t) => (
+                  <button key={t} className={`${styles.themeCard} ${theme === t ? styles.themeCardActive : ""}`} onClick={() => setTheme(t)}>
+                    <div className={styles.themePreview} data-theme-preview={t}>
+                      <div className={styles.tpNav} />
+                      <div className={styles.tpContent}><div /><div /><div /></div>
+                    </div>
+                    <div className={styles.themeCardLabel}>{t === "dark" ? "🌙 Dark" : "☀️ Light"}</div>
+                    {theme === t && <div className={styles.themeCardCheck}>✓</div>}
+                  </button>
+                ))}
               </div>
             </div>
           )}
 
-          {/* ── COMMUNITIES ── */}
+          {/* COMMUNITIES */}
           {tab === "communities" && (
             <div className={styles.section}>
               <div className={styles.sectionTitle}>Communities</div>
@@ -405,9 +348,7 @@ export default function SettingsPage() {
               {joinedCommunities.length === 0 ? (
                 <div className={styles.emptyState}>
                   <div>You haven&apos;t joined any communities yet.</div>
-                  <Link href="/community" className={styles.saveBtn} style={{ display: "inline-block", marginTop: "12px" }}>
-                    Browse Communities
-                  </Link>
+                  <Link href="/community" className={styles.saveBtn} style={{ display: "inline-block", marginTop: "12px" }}>Browse Communities</Link>
                 </div>
               ) : (
                 <div className={styles.communityList}>
@@ -427,8 +368,79 @@ export default function SettingsPage() {
                 </div>
               )}
 
-              <div className={styles.divider} />
-              <div className={styles.subSectionTitle}>Join more communities</div>
+              {SUBJECTS.some((s) => !joinedCommunities.includes(s.id)) && (
+                <>
+                  <div className={styles.divider} />
+                  <div className={styles.subSectionTitle}>Join more communities</div>
+                  <div className={styles.communityList}>
+                    {SUBJECTS.filter((s) => !joinedCommunities.includes(s.id)).map((s) => (
+                      <div key={s.id} className={styles.communityRow}>
+                        <div className={styles.communityIcon}>{s.icon}</div>
+                        <div className={styles.communityInfo}>
+                          <div className={styles.communityName}>{s.name}</div>
+                          <div className={styles.communitySub}>c/{s.id}</div>
+                        </div>
+                        <button className={styles.joinBtn} onClick={() => joinCommunity(s.id)}>Join</button>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+              {SUBJECTS.every((s) => joinedCommunities.includes(s.id)) && (
+                <div className={styles.allJoined}>You&apos;ve joined all communities! 🎉</div>
+              )}
+            </div>
+          )}
+
+          {/* DANGER ZONE */}
+          {tab === "danger" && (
+            <div className={styles.section}>
+              <div className={styles.sectionTitle}>Danger Zone</div>
+              <div className={styles.sectionSub}>These actions are permanent and cannot be undone.</div>
+
+              <div className={styles.dangerCard}>
+                <div className={styles.dangerCardLeft}>
+                  <div className={styles.dangerCardTitle}>Delete Account</div>
+                  <div className={styles.dangerCardSub}>Permanently delete your account, all your messages, and chat history. This cannot be reversed.</div>
+                </div>
+                <button className={styles.dangerBtn} onClick={() => setShowDeleteModal(true)}>Delete Account</button>
+              </div>
+
+              {showDeleteModal && (
+                <div className={styles.modalOverlay} onClick={() => setShowDeleteModal(false)}>
+                  <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+                    <div className={styles.modalTitle}>⚠️ Delete Account</div>
+                    <div className={styles.modalSub}>This will permanently delete your account and all your data. Type <strong>DELETE</strong> to confirm.</div>
+                    {!isGoogleUser && (
+                      <div className={styles.field}>
+                        <label>Current Password</label>
+                        <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="••••••••" />
+                      </div>
+                    )}
+                    <div className={styles.field}>
+                      <label>Type DELETE to confirm</label>
+                      <input type="text" value={deleteConfirm} onChange={(e) => setDeleteConfirm(e.target.value)} placeholder="DELETE" />
+                    </div>
+                    <div className={styles.modalBtns}>
+                      <button className={styles.cancelBtn} onClick={() => setShowDeleteModal(false)}>Cancel</button>
+                      <button className={styles.dangerBtn} onClick={deleteAccount} disabled={deleteConfirm !== "DELETE" || saving}>
+                        {saving ? "Deleting..." : "Delete Forever"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className={styles.aboutCard}>
+                <div className={styles.aboutLogo}>IGCSE<span>Pulse</span></div>
+                <div className={styles.aboutVersion}>Version 1.0.0</div>
+                <div className={styles.aboutSub}>Built by students, for students. Powered by Groq AI · Cambridge IGCSE syllabus.</div>
+                <div className={styles.aboutLinks}>
+                  <a href="/subjects">Subjects</a>
+                  <a href="/resources">Resources</a>
+                  <a href="/community">Community</a>
+                </div>
+              </div>
             </div>
           )}
         </main>
