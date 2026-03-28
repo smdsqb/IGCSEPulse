@@ -418,12 +418,11 @@
   flex-direction: column;
 }
 
-/* UPDATED: Purity fixes for Next.js CSS Modules */
-.themePreview:global([data-theme-preview="dark"]) { 
+.themePreview[data-theme-preview="dark"] { 
   background: #0D0B14; 
 }
 
-.themePreview:global([data-theme-preview="light"]) { 
+.themePreview[data-theme-preview="light"] { 
   background: #F7F5FF; 
 }
 
@@ -432,11 +431,11 @@
   flex-shrink: 0;
 }
 
-.themePreview:global([data-theme-preview="dark"]) .tpNav { 
+.themePreview[data-theme-preview="dark"] .tpNav { 
   background: #13101F; 
 }
 
-.themePreview:global([data-theme-preview="light"]) .tpNav { 
+.themePreview[data-theme-preview="light"] .tpNav { 
   background: #EEEAF8; 
 }
 
@@ -453,11 +452,11 @@
   height: 6px; 
 }
 
-.themePreview:global([data-theme-preview="dark"]) .tpContent div { 
+.themePreview[data-theme-preview="dark"] .tpContent div { 
   background: #1A1628; 
 }
 
-.themePreview:global([data-theme-preview="light"]) .tpContent div { 
+.themePreview[data-theme-preview="light"] .tpContent div { 
   background: #ffffff; 
 }
 
