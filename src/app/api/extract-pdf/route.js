@@ -22,7 +22,7 @@ export async function POST(request) {
     try {
       const { extractText } = await import('unpdf');
       const { text } = await extractText(uint8Array, { mergePages: true });
-      if (text && text.trim().length > 20) {
+      if (text && text.trim().length > 200) {
         console.log('unpdf succeeded, text length:', text.trim().length);
         return NextResponse.json({ text: text.trim().slice(0, 8000) });
       }
