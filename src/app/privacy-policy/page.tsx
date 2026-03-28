@@ -2,7 +2,7 @@ export default function PrivacyPolicy() {
   return (
     <div style={{ padding: "40px", maxWidth: "800px", margin: "auto" }}>
       <h1>Privacy Policy</h1>
-      <p><strong>Effective Date:</strong> [Put today’s date]</p>
+      <p><strong>Effective Date:</strong> 28/03/2026</p>
 
       <h2>1. Information We Collect</h2>
       <p>We collect basic profile info like name, email, and profile picture when you sign in with Google.</p>
