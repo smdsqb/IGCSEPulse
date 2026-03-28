@@ -193,14 +193,13 @@ export default function Navbar() {
             <>
               {user ? (
                 <div className={styles.userMenu}>
-                  <div className={styles.avatar} title={user.displayName ?? user.email ?? ""}>
+                  <Link href="/settings" className={styles.avatarLink} title="Settings">
                     {user.photoURL ? (
-                      // eslint-disable-next-line @next/next/no-img-element
                       <img src={user.photoURL} alt="avatar" className={styles.avatarImg} />
                     ) : (
-                      initials
+                      <div className={styles.avatar}>{initials}</div>
                     )}
-                  </div>
+                  </Link>
                   <button className={styles.logoutBtn} onClick={handleLogout}>Sign Out</button>
                 </div>
               ) : (
