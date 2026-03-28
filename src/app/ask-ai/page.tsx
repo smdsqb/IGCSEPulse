@@ -53,6 +53,8 @@ function renderMarkdown(text: string, isCs: boolean) {
   let i = 0;
   while (i < lines.length) {
     const line = lines[i];
+
+    // Code block
     if (line.trim().startsWith("```")) {
       const lang = line.trim().slice(3).trim() || (isCs ? "python" : "");
       const codeLines: string[] = [];
@@ -70,18 +72,55 @@ function renderMarkdown(text: string, isCs: boolean) {
       );
       i++; continue;
     }
+
+    // Table
+    if (line.trim().startsWith("|")) {
+      const tableLines: string[] = [];
+      while (i < lines.length && lines[i].trim().startsWith("|")) {
+        tableLines.push(lines[i]);
+        i++;
+      }
+      const isSeparator = (l: string) => /^\s*\|[\s\-|:]+\|\s*$/.test(l);
+      const rows = tableLines.filter(l => !isSeparator(l));
+      const parseCells = (row: string) =>
+        row.split("|").map(c => c.trim()).filter((_, idx, arr) => idx > 0 && idx < arr.length - 1);
+      const [headerRow, ...bodyRows] = rows;
+      if (headerRow) {
+        elements.push(
+          <div key={`table-${i}`} className={styles.tableWrap}>
+            <table className={styles.mdTable}>
+              <thead>
+                <tr>{parseCells(headerRow).map((cell, j) => <th key={j}>{inlineMd(cell)}</th>)}</tr>
+              </thead>
+              <tbody>
+                {bodyRows.map((row, ri) => (
+                  <tr key={ri}>{parseCells(row).map((cell, j) => <td key={j}>{inlineMd(cell)}</td>)}</tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+      }
+      continue;
+    }
+
+    // Bullet list
     if (/^(\s*[-•*])\s/.test(line)) {
       const items: string[] = [];
       while (i < lines.length && /^(\s*[-•*])\s/.test(lines[i])) { items.push(lines[i].replace(/^\s*[-•*]\s/, "")); i++; }
       elements.push(<ul key={`ul-${i}`} className={styles.mdList}>{items.map((it, j) => <li key={j}>{inlineMd(it)}</li>)}</ul>);
       continue;
     }
+
+    // Numbered list
     if (/^\d+\.\s/.test(line)) {
       const items: string[] = [];
       while (i < lines.length && /^\d+\.\s/.test(lines[i])) { items.push(lines[i].replace(/^\d+\.\s/, "")); i++; }
       elements.push(<ol key={`ol-${i}`} className={styles.mdList}>{items.map((it, j) => <li key={j}>{inlineMd(it)}</li>)}</ol>);
       continue;
     }
+
+    // Heading
     if (/^#{1,3}\s/.test(line)) {
       const level = (line.match(/^(#{1,3})/)?.[1].length ?? 1);
       const content = line.replace(/^#{1,3}\s/, "");
@@ -89,6 +128,7 @@ function renderMarkdown(text: string, isCs: boolean) {
       elements.push(<Tag key={`h-${i}`} className={styles.mdHeading}>{inlineMd(content)}</Tag>);
       i++; continue;
     }
+
     if (line.trim() === "") { i++; continue; }
     elements.push(<p key={`p-${i}`} className={styles.mdPara}>{inlineMd(line)}</p>);
     i++;
@@ -106,14 +146,16 @@ function inlineMd(text: string): React.ReactNode {
   });
 }
 
-// ── Extract text from file client-side ──────────────────────────────────────
+// ── Extract text from file ───────────────────────────────────────────────────
+// PDFs go to the server-side /api/extract-pdf route (uses unpdf, no native deps).
+// Images are read as base64 data URLs for the vision model.
+// Plain text files are read directly in the browser.
 async function extractFileText(file: File): Promise<string> {
-  // Plain text / code files
   if (file.type === "text/plain" || file.name.endsWith(".txt")) {
     return await file.text();
   }
 
-  // PDF — server-side extraction via API route
+  // ✅ PDF — always use the server-side route
   if (file.type === "application/pdf") {
     try {
       const formData = new FormData();
@@ -162,17 +204,15 @@ export default function AskAiPage() {
   const [uploading, setUploading]         = useState(false);
   const [extracting, setExtracting]       = useState(false);
 
-  const bottomRef        = useRef<HTMLDivElement>(null);
-  const unsubRef         = useRef<(() => void) | null>(null);
-  const fileRef          = useRef<HTMLInputElement>(null);
-  // Prevents subject-change effect from wiping a session we're loading
+  const bottomRef         = useRef<HTMLDivElement>(null);
+  const unsubRef          = useRef<(() => void) | null>(null);
+  const fileRef           = useRef<HTMLInputElement>(null);
   const loadingSessionRef = useRef(false);
 
   useEffect(() => {
     if (!loading && !user) router.push("/login");
   }, [user, loading, router]);
 
-  // Load all sessions grouped by subject
   useEffect(() => {
     if (!user) return;
     const q = query(collection(db, "ai_chats", user.uid, "sessions"), orderBy("timestamp", "desc"));
@@ -200,7 +240,6 @@ export default function AskAiPage() {
     });
   }, [user]);
 
-  // Subject change → fresh session (but skip if we're loading a past session)
   useEffect(() => {
     if (loadingSessionRef.current) return;
     const newId = genId();
@@ -223,7 +262,6 @@ export default function AskAiPage() {
     if (unsubRef.current) { unsubRef.current(); unsubRef.current = null; }
   }
 
-  // Single-tap session load — use ref to prevent subject effect from firing
   function loadSession(sess: Session) {
     if (activeSession === sess.id) return;
     loadingSessionRef.current = true;
@@ -232,7 +270,6 @@ export default function AskAiPage() {
     setActiveSession(sess.id);
     setSessionId(sess.id);
     subscribeToSession(sess.id);
-    // Reset flag after state flush
     setTimeout(() => { loadingSessionRef.current = false; }, 100);
   }
 
@@ -274,14 +311,11 @@ export default function AskAiPage() {
       setUploading(true);
       setExtracting(true);
       try {
-        // Upload to Firebase Storage
         const storageRef = ref(storage, `ai_files/${user.uid}/${currentSessionId}/${Date.now()}_${attachedFile.name}`);
         await uploadBytes(storageRef, attachedFile);
         fileUrl = await getDownloadURL(storageRef);
         fileName = attachedFile.name;
         fileType = attachedFile.type;
-
-        // Extract readable content to send to AI
         extractedContent = await extractFileText(attachedFile);
       } catch (err) {
         console.error("File processing error:", err);
@@ -307,21 +341,17 @@ export default function AskAiPage() {
       { role: "user", text: q, marks: marks || null, fileUrl: fileUrl || null, fileName: fileName || null, fileType: fileType || null, timestamp: serverTimestamp() }
     );
 
-    // Build question with file content embedded
-    // For images: extract raw base64 (strip data:mime;base64, prefix)
     let imageBase64: string | null = null;
     let imageType: string | null = null;
     let fullQuestion = q;
 
     if (extractedContent && fileType?.startsWith("image/")) {
-      // Send as vision message — extract base64 payload
       const match = extractedContent.match(/^data:([^;]+);base64,(.+)$/);
       if (match) {
         imageType = match[1];
         imageBase64 = match[2];
       }
     } else if (extractedContent && !fileType?.startsWith("image/")) {
-      // Text-based file — embed content in question
       fullQuestion = `${q ? q + "\n\n" : ""}[The user has uploaded a file: "${fileName}". Here is its content:]\n\n${extractedContent.slice(0, 4000)}`;
     }
 
@@ -351,6 +381,42 @@ export default function AskAiPage() {
     } catch {
       await addDoc(
         collection(db, "ai_chats", user.uid, "sessions", currentSessionId, "messages"),
+        { role: "ai", text: "Sorry, something went wrong. Please try again.", timestamp: serverTimestamp() }
+      );
+    } finally {
+      setSending(false);
+    }
+  }
+
+  async function regenerateLastResponse() {
+    if (sending || !user) return;
+    const lastUser = [...messages].reverse().find(m => m.role === "user");
+    if (!lastUser) return;
+    setSending(true);
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question: lastUser.text || `[File: ${lastUser.fileName}]`,
+          subject,
+          marks: lastUser.marks ? parseInt(lastUser.marks) : null,
+          userId: user.uid,
+          sessionId,
+          history: messages.slice(-8, -2).map(m => ({
+            role: m.role === "user" ? "user" : "assistant",
+            content: m.text || "",
+          })),
+        }),
+      });
+      const data = await res.json();
+      await addDoc(
+        collection(db, "ai_chats", user.uid, "sessions", sessionId, "messages"),
+        { role: "ai", text: data.reply ?? "Sorry, something went wrong.", timestamp: serverTimestamp() }
+      );
+    } catch {
+      await addDoc(
+        collection(db, "ai_chats", user.uid, "sessions", sessionId, "messages"),
         { role: "ai", text: "Sorry, something went wrong. Please try again.", timestamp: serverTimestamp() }
       );
     } finally {
@@ -481,7 +547,14 @@ export default function AskAiPage() {
                     {msg.text && (msg.role === "ai" ? renderMarkdown(msg.text, isCs) : <span>{msg.text}</span>)}
                   </div>
                   {msg.role === "ai" && (
-                    <button className={styles.copyBtn} onClick={() => navigator.clipboard.writeText(msg.text)}>📋 Copy</button>
+                    <div className={styles.msgActions}>
+                      <button className={styles.copyBtn} onClick={() => navigator.clipboard.writeText(msg.text)}>📋 Copy</button>
+                      {i === messages.length - 1 && (
+                        <button className={styles.regenBtn} disabled={sending} onClick={regenerateLastResponse}>
+                          🔄 Regenerate
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
@@ -513,26 +586,33 @@ export default function AskAiPage() {
             </div>
           )}
 
+          {/* INPUT ROW — attach | textarea | send, all on one line */}
           <div className={styles.inputArea}>
             <input type="file" accept={ACCEPTED_FILES} ref={fileRef} onChange={handleFileChange} className={styles.hiddenFile} />
-            <button
-              className={`${styles.attachBtn} ${attachedFile ? styles.attachBtnActive : ""}`}
-              onClick={() => fileRef.current?.click()}
-              title="Attach image, PDF, or document"
-            >
-              📎
-            </button>
-            <textarea
-              className={styles.textInput}
-              placeholder={attachedFile ? `Add a message about ${attachedFile.name}... (optional)` : `Ask about ${activeSubject?.name}... (Enter to send)`}
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              onKeyDown={handleKeyDown}
-              rows={2}
-            />
-            <button className={styles.sendBtn} onClick={askQuestion} disabled={sending || uploading || extracting || (!question.trim() && !attachedFile)}>
-              {uploading || extracting ? "⏫" : sending ? "..." : "↑"}
-            </button>
+            <div className={styles.inputRow}>
+              <button
+                className={`${styles.attachBtn} ${attachedFile ? styles.attachBtnActive : ""}`}
+                onClick={() => fileRef.current?.click()}
+                title="Attach image, PDF, or document"
+              >
+                📎
+              </button>
+              <textarea
+                className={styles.textInput}
+                placeholder={attachedFile ? `Add a message about ${attachedFile.name}... (optional)` : `Ask about ${activeSubject?.name}... (Enter to send)`}
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                onKeyDown={handleKeyDown}
+                rows={2}
+              />
+              <button
+                className={styles.sendBtn}
+                onClick={askQuestion}
+                disabled={sending || uploading || extracting || (!question.trim() && !attachedFile)}
+              >
+                {uploading || extracting ? "⏫" : sending ? "..." : "↑"}
+              </button>
+            </div>
           </div>
         </div>
       </div>
