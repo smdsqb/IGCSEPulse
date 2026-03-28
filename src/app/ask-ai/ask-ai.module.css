@@ -292,6 +292,14 @@
   border: 1px solid var(--border);
   border-bottom-left-radius: 4px;
 }
+
+/* MESSAGE ACTIONS (copy + regenerate) */
+.msgActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
 .copyBtn {
   background: none;
   border: none;
@@ -302,9 +310,21 @@
   font-family: "DM Sans", sans-serif;
   opacity: 0.7;
   transition: opacity 0.15s;
-  align-self: flex-start;
 }
 .copyBtn:hover { opacity: 1; }
+.regenBtn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--ink2);
+  font-size: 11px;
+  font-family: "DM Sans", sans-serif;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.regenBtn:hover { border-color: var(--pulse); color: var(--pulse); background: rgba(255,77,109,0.06); }
+.regenBtn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* TYPING */
 .typing {
@@ -324,7 +344,8 @@
 .typing span:nth-child(3) { animation-delay: 0.4s; }
 @keyframes bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-6px)} }
 
-/* INPUT */
+/* INPUT AREA — outer wrapper is column (for file preview bar above),
+   inner inputRow is a single flex row: attach | textarea | send */
 .inputArea {
   display: flex;
   flex-direction: column;
@@ -336,6 +357,7 @@
 }
 .inputRow {
   display: flex;
+  flex-direction: row;
   align-items: flex-end;
   gap: 10px;
   width: 100%;
@@ -619,6 +641,43 @@ h5.mdHeading { font-size: 13px; }
   font-family: "Courier New", monospace;
   color: var(--pulse);
 }
+
+/* ── TABLE ───────────────────────────────────────────────────────────── */
+.tableWrap {
+  overflow-x: auto;
+  margin: 8px 0;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.mdTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-family: "DM Sans", sans-serif;
+}
+.mdTable th,
+.mdTable td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  line-height: 1.5;
+}
+.mdTable th:last-child,
+.mdTable td:last-child { border-right: none; }
+.mdTable tr:last-child td { border-bottom: none; }
+.mdTable thead tr {
+  background: var(--surface2);
+}
+.mdTable th {
+  font-weight: 700;
+  color: var(--ink);
+  font-size: 12px;
+  letter-spacing: 0.3px;
+}
+.mdTable td { color: var(--ink); }
+.mdTable tbody tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+.mdTable tbody tr:hover { background: rgba(255,77,109,0.04); }
 
 /* ── CODE BLOCK ──────────────────────────────────────────────────────── */
 .codeBlock {
