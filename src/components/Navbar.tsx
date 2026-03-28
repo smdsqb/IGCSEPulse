@@ -24,25 +24,25 @@ function AboutModal({ onClose }: { onClose: () => void }) {
           {/* ── Developer 1 ── */}
           <div className={styles.teamCard}>
             <div className={styles.teamAvatar}>👨‍💻</div>
-            <div className={styles.teamName}>Saqib</div>
+            <div className={styles.teamName}>Shaik Mahammad Saqib</div>
             <div className={styles.teamRole}>Co-Founder & Developer</div>
-            <div className={styles.teamBio}>A guy who found it hard to accurately correct his business studies answers when using AI during his IGCSE's. Teamed up with the other two to help correct his answers</div>
+            <div className={styles.teamBio}>A guy who thought using AI to check his handwritten business studies answers during IGCSEs would be a genius move. Turns out, AI can't read chicken scratch. So he roped the other two into building this site instead. What you see here? Yeah, that's his revenge on bad handwriting</div>
           </div>
 
           {/* ── Developer 2 ── */}
           <div className={styles.teamCard}>
             <div className={styles.teamAvatar}>👨‍💻</div>
-            <div className={styles.teamName}>Parth</div>
+            <div className={styles.teamName}>Parth Sharma</div>
             <div className={styles.teamRole}>Co-Founder & Developer</div>
-            <div className={styles.teamBio}>An absolute nerd on anything computer. Also found it hard to correct his written practice work. IGCSEPulse os this dudes idea.</div>
+            <div className={styles.teamBio}>Absolute genius when it comes to anything with a keyboard. Also found out the hard way that his own handwriting was just as unreadable. IGCSEPulse? All his idea. He's the one keeping the website alive and feeding data to the AI—basically the wizard behind the curtain.</div>
           </div>
 
           {/* ── Investor ── */}
           <div className={styles.teamCard}>
             <div className={styles.teamAvatar}>💼</div>
-            <div className={styles.teamName}>Arbaz</div>
+            <div className={styles.teamName}>Arbaz Khan</div>
             <div className={styles.teamRole}>Investor & Supporter</div>
-            <div className={styles.teamBio}>Another nerd who's doing his internship currently after graduation from poly. Supports us by purchasing plans for storage/hosting usage.</div>
+            <div className={styles.teamBio}>Another computer genius, currently doing his internship after graduating from poly. He graciously donates his wallet to cover storage and hosting costs, and swoops in like a hero whenever something catches fire.</div>
           </div>
         </div>
       </div>
