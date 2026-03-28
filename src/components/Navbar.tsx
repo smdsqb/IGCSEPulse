@@ -24,25 +24,25 @@ function AboutModal({ onClose }: { onClose: () => void }) {
           {/* ── Developer 1 ── */}
           <div className={styles.teamCard}>
             <div className={styles.teamAvatar}>👨‍💻</div>
-            <div className={styles.teamName}>[Developer 1 Name]</div>
+            <div className={styles.teamName}>Saqib</div>
             <div className={styles.teamRole}>Co-Founder & Developer</div>
-            <div className={styles.teamBio}>[Short bio about Developer 1 — what they built, their background, etc.]</div>
+            <div className={styles.teamBio}>A guy who found it hard to accurately correct his business studies answers when using AI during his IGCSE's. Teamed up with the other two to help correct his answers</div>
           </div>
 
           {/* ── Developer 2 ── */}
           <div className={styles.teamCard}>
             <div className={styles.teamAvatar}>👨‍💻</div>
-            <div className={styles.teamName}>[Developer 2 Name]</div>
+            <div className={styles.teamName}>Parth</div>
             <div className={styles.teamRole}>Co-Founder & Developer</div>
-            <div className={styles.teamBio}>[Short bio about Developer 2 — what they built, their background, etc.]</div>
+            <div className={styles.teamBio}>An absolute nerd on anything computer. Also found it hard to correct his written practice work. IGCSEPulse os this dudes idea.</div>
           </div>
 
           {/* ── Investor ── */}
           <div className={styles.teamCard}>
             <div className={styles.teamAvatar}>💼</div>
-            <div className={styles.teamName}>[Investor Name]</div>
-            <div className={styles.teamRole}>Investor & Advisor</div>
-            <div className={styles.teamBio}>[Short bio about the investor — their background and why they believed in IGCSE Pulse.]</div>
+            <div className={styles.teamName}>Arbaz</div>
+            <div className={styles.teamRole}>Investor & Supporter</div>
+            <div className={styles.teamBio}>Another nerd who's doing his internship currently after graduation from poly. Supports us by purchasing plans for storage/hosting usage.</div>
           </div>
         </div>
       </div>
@@ -167,11 +167,11 @@ export default function Navbar() {
         </Link>
 
         <div className={styles.navLinks}>
+          <button className={styles.navTextBtn} onClick={() => setShowAbout(true)}>About</button>
           <Link href="/dashboard">Dashboard</Link>
           <Link href="/subjects">Subjects</Link>
           <Link href="/resources">Resources</Link>
           <Link href="/ask-ai" className={styles.aiLink}>Ask AI ✦</Link>
-          <button className={styles.navTextBtn} onClick={() => setShowAbout(true)}>About</button>
           <button className={styles.navTextBtn} onClick={() => setShowFeedback(true)}>Feedback</button>
         </div>
 
