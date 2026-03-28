@@ -117,8 +117,8 @@ async function extractFileText(file: File): Promise<string> {
   if (file.type === "application/pdf") {
     try {
       const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch("/api/extract-pdf", { method: "POST", body: formData });
+      formData.append('file', file);
+      const res = await fetch('/api/extract-pdf', { method: 'POST', body: formData });
       const { text } = await res.json();
       return text || "[Could not extract text from PDF]";
     } catch (err) {
