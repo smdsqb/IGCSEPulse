@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-// Convert a Uint8Array to a base64 string (Edge-safe)
+// Convert Uint8Array to base64 (Edge-safe, no Buffer)
 function uint8ToBase64(uint8) {
   let binary = '';
   for (let i = 0; i < uint8.length; i++) {
@@ -13,12 +13,15 @@ export async function POST(request) {
   try {
     const formData = await request.formData();
     const file = formData.get('file');
-    if (!file) return NextResponse.json({ text: '[No file received]' });
+
+    if (!file) {
+      return NextResponse.json({ text: '[No file received]' });
+    }
 
     const arrayBuffer = await file.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
 
-    // ── Step 1: try unpdf for text-based PDFs ────────────────────────────
+    // ── Step 1: unpdf for text-based PDFs ────────────────────────────────
     try {
       const { extractText } = await import('unpdf');
       const { text } = await extractText(uint8Array, { mergePages: true });
@@ -30,8 +33,8 @@ export async function POST(request) {
       console.log('unpdf failed or no text layer:', unpdfErr.message);
     }
 
-    // ── Step 2: scanned PDF — send raw PDF to Mistral vision OCR ─────────
-    console.log('No text layer, falling back to Mistral OCR...');
+    // ── Step 2: scanned/image PDF — Mistral vision OCR ───────────────────
+    console.log('No sufficient text layer found, falling back to Mistral OCR...');
 
     const mistralKey = process.env.MISTRAL_API_KEY;
     if (!mistralKey) {
@@ -39,8 +42,6 @@ export async function POST(request) {
       return NextResponse.json({ text: '[OCR unavailable — API key not configured]' });
     }
 
-    // Encode the PDF as base64 and send it directly to Mistral
-    // Mistral's vision model accepts PDF documents via document_url with base64
     const base64Pdf = uint8ToBase64(uint8Array);
 
     const mistralRes = await fetch('https://api.mistral.ai/v1/chat/completions', {
@@ -50,7 +51,7 @@ export async function POST(request) {
         'Authorization': `Bearer ${mistralKey}`,
       },
       body: JSON.stringify({
-        model: 'mistral-small-latest', // free tier, supports document understanding
+        model: 'mistral-small-latest',
         max_tokens: 4000,
         messages: [
           {
@@ -62,7 +63,7 @@ export async function POST(request) {
               },
               {
                 type: 'text',
-                text: 'Please extract and return ALL the text content from this PDF exactly as it appears. Include all questions, text, data, and any tables. Do not summarise — return the raw content.',
+                text: 'This is a Cambridge IGCSE past paper or insert. Extract ALL text content preserving the structure as much as possible. For tables, format each row on a new line with cells separated by " | ". For financial data, preserve all numbers. Include every word, number, and label. Do not summarise anything.',
               },
             ],
           },
