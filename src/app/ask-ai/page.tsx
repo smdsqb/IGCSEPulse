@@ -106,31 +106,6 @@ function inlineMd(text: string): React.ReactNode {
   });
 }
 
-function extractRawPDFText(binary: string): string {
-  const textParts: string[] = [];
-  const btEtRegex = /BT([\s\S]*?)ET/g;
-  let btMatch;
-  while ((btMatch = btEtRegex.exec(binary)) !== null) {
-    const block = btMatch[1];
-    const tjRegex = /\(((?:[^()\\]|\\[\s\S])*)\)\s*(?:Tj|'|")/g;
-    const tjArrayRegex = /\[((?:[^\[\]]|\((?:[^()\\]|\\[\s\S])*\))*)\]\s*TJ/g;
-    let m;
-    while ((m = tjRegex.exec(block)) !== null) {
-      const t = m[1].replace(/\\n/g,' ').replace(/\\r/g,' ').replace(/\\t/g,' ').replace(/\\(\d{3})/g,(_,o)=>String.fromCharCode(parseInt(o,8))).replace(/\\(.)/g,'$1');
-      if (t.trim()) textParts.push(t);
-    }
-    while ((m = tjArrayRegex.exec(block)) !== null) {
-      const strRegex = /\(((?:[^()\\]|\\[\s\S])*)\)/g;
-      let s;
-      while ((s = strRegex.exec(m[1])) !== null) {
-        const t = s[1].replace(/\\n/g,' ').replace(/\\r/g,' ').replace(/\\t/g,' ').replace(/\\(\d{3})/g,(_,o)=>String.fromCharCode(parseInt(o,8))).replace(/\\(.)/g,'$1');
-        if (t.trim()) textParts.push(t);
-      }
-    }
-  }
-  return textParts.join(' ').replace(/\s+/g,' ').trim();
-}
-
 // ── Extract text from file client-side ──────────────────────────────────────
 async function extractFileText(file: File): Promise<string> {
   // Plain text / code files
@@ -138,21 +113,28 @@ async function extractFileText(file: File): Promise<string> {
     return await file.text();
   }
 
-  // PDF — server-side extraction via API route
+  // PDF — use pdfjs-dist loaded from CDN to avoid SSR issues
   if (file.type === "application/pdf") {
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      const res = await fetch('/api/extract-pdf', { method: 'POST', body: formData });
-      const { text } = await res.json();
-      return text || "[Could not extract text from PDF]";
+      const arrayBuffer = await file.arrayBuffer();
+      // Dynamically import pdfjs only in browser
+      const pdfjsLib = await import("pdfjs-dist");
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let fullText = "";
+      for (let p = 1; p <= Math.min(pdf.numPages, 10); p++) {
+        const page = await pdf.getPage(p);
+        const content = await page.getTextContent();
+        fullText += content.items.map((item: { str?: string }) => item.str ?? "").join(" ") + "\n";
+      }
+      return fullText.trim() || "[Could not extract text from PDF]";
     } catch (err) {
       console.error("PDF parse error:", err);
       return "[PDF could not be read — please paste the text directly]";
     }
   }
 
-  // Images — convert to base64 for vision context
+  // Images — return base64 data URL (handled separately for vision model)
   if (file.type.startsWith("image/")) {
     return await new Promise((resolve) => {
       const reader = new FileReader();
@@ -190,12 +172,14 @@ export default function AskAiPage() {
   const bottomRef        = useRef<HTMLDivElement>(null);
   const unsubRef         = useRef<(() => void) | null>(null);
   const fileRef          = useRef<HTMLInputElement>(null);
+  // Prevents subject-change effect from wiping a session we're loading
   const loadingSessionRef = useRef(false);
 
   useEffect(() => {
     if (!loading && !user) router.push("/login");
   }, [user, loading, router]);
 
+  // Load all sessions grouped by subject
   useEffect(() => {
     if (!user) return;
     const q = query(collection(db, "ai_chats", user.uid, "sessions"), orderBy("timestamp", "desc"));
@@ -223,6 +207,7 @@ export default function AskAiPage() {
     });
   }, [user]);
 
+  // Subject change → fresh session (but skip if we're loading a past session)
   useEffect(() => {
     if (loadingSessionRef.current) return;
     const newId = genId();
@@ -245,6 +230,7 @@ export default function AskAiPage() {
     if (unsubRef.current) { unsubRef.current(); unsubRef.current = null; }
   }
 
+  // Single-tap session load — use ref to prevent subject effect from firing
   function loadSession(sess: Session) {
     if (activeSession === sess.id) return;
     loadingSessionRef.current = true;
@@ -253,6 +239,7 @@ export default function AskAiPage() {
     setActiveSession(sess.id);
     setSessionId(sess.id);
     subscribeToSession(sess.id);
+    // Reset flag after state flush
     setTimeout(() => { loadingSessionRef.current = false; }, 100);
   }
 
@@ -294,11 +281,14 @@ export default function AskAiPage() {
       setUploading(true);
       setExtracting(true);
       try {
+        // Upload to Firebase Storage
         const storageRef = ref(storage, `ai_files/${user.uid}/${currentSessionId}/${Date.now()}_${attachedFile.name}`);
         await uploadBytes(storageRef, attachedFile);
         fileUrl = await getDownloadURL(storageRef);
         fileName = attachedFile.name;
         fileType = attachedFile.type;
+
+        // Extract readable content to send to AI
         extractedContent = await extractFileText(attachedFile);
       } catch (err) {
         console.error("File processing error:", err);
@@ -324,13 +314,22 @@ export default function AskAiPage() {
       { role: "user", text: q, marks: marks || null, fileUrl: fileUrl || null, fileName: fileName || null, fileType: fileType || null, timestamp: serverTimestamp() }
     );
 
+    // Build question with file content embedded
+    // For images: extract raw base64 (strip data:mime;base64, prefix)
+    let imageBase64: string | null = null;
+    let imageType: string | null = null;
     let fullQuestion = q;
-    if (extractedContent) {
-      if (fileType?.startsWith("image/")) {
-        fullQuestion = `${q ? q + "\n\n" : ""}[The user has shared an image. Here is the base64 data — please describe what you see and help with any IGCSE-related content in it]\n${extractedContent.slice(0, 3000)}`;
-      } else {
-        fullQuestion = `${q ? q + "\n\n" : ""}[The user has uploaded a file: "${fileName}". Here is its content:]\n\n${extractedContent.slice(0, 4000)}`;
+
+    if (extractedContent && fileType?.startsWith("image/")) {
+      // Send as vision message — extract base64 payload
+      const match = extractedContent.match(/^data:([^;]+);base64,(.+)$/);
+      if (match) {
+        imageType = match[1];
+        imageBase64 = match[2];
       }
+    } else if (extractedContent && !fileType?.startsWith("image/")) {
+      // Text-based file — embed content in question
+      fullQuestion = `${q ? q + "\n\n" : ""}[The user has uploaded a file: "${fileName}". Here is its content:]\n\n${extractedContent.slice(0, 4000)}`;
     }
 
     try {
@@ -343,6 +342,8 @@ export default function AskAiPage() {
           marks: marks ? parseInt(marks) : null,
           userId: user.uid,
           sessionId: currentSessionId,
+          imageBase64: imageBase64 || undefined,
+          imageType: imageType || undefined,
           history: messages.slice(-6).map((m) => ({
             role: m.role === "user" ? "user" : "assistant",
             content: m.text || (m.fileName ? `[uploaded: ${m.fileName}]` : ""),
@@ -496,59 +497,49 @@ export default function AskAiPage() {
             {(sending || extracting) && (
               <div className={`${styles.msgRow} ${styles.msgAi}`}>
                 <div className={styles.aiAvatar}>✦</div>
-                <div className={styles.msgBubbleWrap}>
-                  <div className={`${styles.msgBubble} ${styles.bubbleAi}`}>
-                    <div className={styles.typing}>
-                      <span /><span /><span />
-                    </div>
-                  </div>
+                <div className={`${styles.msgBubble} ${styles.bubbleAi}`}>
+                  {extracting
+                    ? <span className={styles.extractingText}>Reading file...</span>
+                    : <div className={styles.typing}><span /><span /><span /></div>
+                  }
                 </div>
               </div>
             )}
             <div ref={bottomRef} />
           </div>
 
-          <div className={styles.inputArea}>
-            {filePreview && (
-              <div className={styles.filePreviewWrap}>
-                <img src={filePreview} alt="preview" className={styles.filePreview} />
-                <button className={styles.removeFile} onClick={clearFile}>✕</button>
-              </div>
-            )}
-            {attachedFile && !filePreview && (
-              <div className={styles.fileChip}>
-                📎 {attachedFile.name}
-                <button className={styles.removeFile} onClick={clearFile}>✕</button>
-              </div>
-            )}
-            <div className={styles.inputRow}>
-              <button className={styles.attachBtn} onClick={() => fileRef.current?.click()} title="Attach file">
-                📎
-              </button>
-              <input
-                ref={fileRef}
-                type="file"
-                accept={ACCEPTED_FILES}
-                style={{ display: "none" }}
-                onChange={handleFileChange}
-              />
-              <textarea
-                className={styles.input}
-                placeholder={`Ask about ${activeSubject?.name}... (Shift+Enter for new line)`}
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-                onKeyDown={handleKeyDown}
-                rows={1}
-                disabled={sending}
-              />
-              <button
-                className={styles.sendBtn}
-                onClick={askQuestion}
-                disabled={sending || (!question.trim() && !attachedFile)}
-              >
-                {sending ? <div className={styles.btnSpinner} /> : "↑"}
-              </button>
+          {attachedFile && (
+            <div className={styles.filePreviewBar}>
+              {filePreview
+                ? <img src={filePreview} alt="preview" className={styles.filePreviewThumb} />
+                : <span className={styles.filePreviewIcon}>📎</span>
+              }
+              <span className={styles.filePreviewName}>{attachedFile.name}</span>
+              <span className={styles.filePreviewSize}>({(attachedFile.size / 1024).toFixed(0)}KB)</span>
+              <button className={styles.filePreviewRemove} onClick={clearFile}>✕</button>
             </div>
+          )}
+
+          <div className={styles.inputArea}>
+            <input type="file" accept={ACCEPTED_FILES} ref={fileRef} onChange={handleFileChange} className={styles.hiddenFile} />
+            <button
+              className={`${styles.attachBtn} ${attachedFile ? styles.attachBtnActive : ""}`}
+              onClick={() => fileRef.current?.click()}
+              title="Attach image, PDF, or document"
+            >
+              📎
+            </button>
+            <textarea
+              className={styles.textInput}
+              placeholder={attachedFile ? `Add a message about ${attachedFile.name}... (optional)` : `Ask about ${activeSubject?.name}... (Enter to send)`}
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              onKeyDown={handleKeyDown}
+              rows={2}
+            />
+            <button className={styles.sendBtn} onClick={askQuestion} disabled={sending || uploading || extracting || (!question.trim() && !attachedFile)}>
+              {uploading || extracting ? "⏫" : sending ? "..." : "↑"}
+            </button>
           </div>
         </div>
       </div>
