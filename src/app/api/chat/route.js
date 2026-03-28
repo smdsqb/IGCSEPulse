@@ -32,7 +32,7 @@ function getAdminDb() {
 
 export async function POST(request) {
   try {
-    const { question, subject, marks, userId, sessionId, history = [] } = await request.json();
+    const { question, subject, marks, userId, sessionId, history = [], imageBase64, imageType } = await request.json();
 
     const data = syllabuses[subject];
     if (!data) {
@@ -44,17 +44,41 @@ Syllabus content: ${data.syllabus.content}
 Topics: ${data.syllabus.topics?.map((t) => t.topicName).join(', ') || ''}
 Rules:
 - Answer based on the Cambridge IGCSE syllabus and any file content the student shares.
-- When the user uploads a file or image, read its content carefully and help them with it in the context of IGCSE ${data.name}.
+- When the user uploads an image or pdf, carefully analyse it and help them with its content in the context of IGCSE ${data.name}.
 - For ${marks || 'any'} marks, follow the Cambridge marking scheme format.
 - For 6+ marks, always include evaluation/judgement.
 - Be concise, student-friendly, and examiner-accurate.
 - You have access to the conversation history. Maintain context across messages.`;
 
-    // Build messages array with history for multi-turn
+    // Determine if this is an image message needing vision model
+    const isImageMessage = !!(imageBase64 && imageType);
+    const model = isImageMessage
+      ? 'meta-llama/llama-4-scout-17b-16e-instruct'
+      : 'llama-3.3-70b-versatile';
+
+    // Build user content — vision format for images, plain string for text
+    let userContent;
+    if (isImageMessage) {
+      userContent = [
+        {
+          type: 'image_url',
+          image_url: {
+            url: `data:${imageType};base64,${imageBase64}`,
+          },
+        },
+        {
+          type: 'text',
+          text: question || 'Please analyse this image and help me with any IGCSE-related content.',
+        },
+      ];
+    } else {
+      userContent = question;
+    }
+
     const chatMessages = [
       { role: 'system', content: systemPrompt },
-      ...history.slice(-6), // last 6 messages for context
-      { role: 'user', content: question },
+      ...history.slice(-6),
+      { role: 'user', content: userContent },
     ];
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -64,7 +88,7 @@ Rules:
         Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model,
         max_tokens: 1000,
         temperature: 0.3,
         messages: chatMessages,
@@ -86,8 +110,6 @@ Rules:
 
     const answer = result.choices[0].message.content;
 
-    // Note: messages are now saved by the client directly to Firestore
-    // We only log here for server-side audit if needed
     try {
       if (userId && userId !== 'anonymous' && sessionId) {
         const adminDb = getAdminDb();
