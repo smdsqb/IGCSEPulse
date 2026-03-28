@@ -11,7 +11,7 @@ const features = [
     icon: "✦",
     iconClass: "fi2",
     title: "Ask AI",
-    badge: "Coming Soon",
+    badge: "Powered by Groq API",
     desc: "AI trained on IGCSE textbooks, past papers, mark schemes & examiner reports. Ask anything, get syllabus-accurate answers.",
   },
   {
