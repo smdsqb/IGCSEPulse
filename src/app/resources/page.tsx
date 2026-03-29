@@ -18,13 +18,6 @@ const resources = [
     tag: "Coming Soon",
   },
   {
-    icon: "🎯",
-    title: "Examiner Reports",
-    desc: "Learn what examiners say about common mistakes and how to avoid them in your answers.",
-    color: "colorRed",
-    tag: "Coming Soon",
-  },
-  {
     icon: "✦",
     title: "AI Explanations",
     desc: "Get any concept explained in plain English, tailored to your IGCSE syllabus, powered by AI.",
