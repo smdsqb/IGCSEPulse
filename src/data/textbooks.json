@@ -6,7 +6,12 @@
       "name": "Business Studies",
       "icon": "📊",
       "code": "0450",
-      "files": []
+      "files": [{
+                "name": "hello.pdf",
+                "path": "/resources/textbooks/business/hello.pdf",
+                "size": "12 MB",
+                "addedDate": "Mar 2025"
+                }]
     },
     {
       "id": "maths",
