@@ -176,18 +176,18 @@ export default function Navbar() {
         </div>
 
         <div className={styles.navRight}>
-          <div className={styles.themeToggle}>
-            <button
-              className={`${styles.ttBtn} ${theme === "dark" ? styles.active : ""}`}
-              onClick={() => setTheme("dark")}
-              title="Dark mode"
-            >🌙</button>
-            <button
-              className={`${styles.ttBtn} ${theme === "light" ? styles.active : ""}`}
-              onClick={() => setTheme("light")}
-              title="Light mode"
-            >☀️</button>
-          </div>
+
+          {/* ── Sliding theme toggle ── */}
+          <button
+            className={styles.themeSwitch}
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+          >
+            <span className={styles.themeSwitchIcon}>
+              {theme === "dark" ? "🌙" : "☀️"}
+            </span>
+            <span className={`${styles.themeSwitchKnob} ${theme === "light" ? styles.themeSwitchKnobRight : ""}`} />
+          </button>
 
           {!loading && (
             <>
