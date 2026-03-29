@@ -1,0 +1,47 @@
+{
+  "lastUpdated": "2025-03-29",
+  "subjects": [
+    {
+      "id": "business",
+      "name": "Business Studies",
+      "icon": "📊",
+      "code": "0450",
+      "files": []
+    },
+    {
+      "id": "maths",
+      "name": "Mathematics",
+      "icon": "📐",
+      "code": "0580",
+      "files": []
+    },
+    {
+      "id": "physics",
+      "name": "Physics",
+      "icon": "⚡",
+      "code": "0625",
+      "files": []
+    },
+    {
+      "id": "chemistry",
+      "name": "Chemistry",
+      "icon": "🧪",
+      "code": "0620",
+      "files": []
+    },
+    {
+      "id": "cs",
+      "name": "Computer Science",
+      "icon": "💻",
+      "code": "0478",
+      "files": []
+    },
+    {
+      "id": "english",
+      "name": "English",
+      "icon": "📖",
+      "code": "0500",
+      "files": []
+    }
+  ]
+}
