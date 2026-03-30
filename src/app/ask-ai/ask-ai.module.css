@@ -734,3 +734,43 @@ h5.mdHeading { font-size: 13px; }
   animation: pulse 1.5s ease-in-out infinite;
 }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* ── FILE ABOVE TEXT ─────────────────────────────────────────────────── */
+.fileAttachment {
+  margin-bottom: 8px;
+}
+
+/* ── MESSAGE ACTIONS ─────────────────────────────────────────────────── */
+.msgActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 2px;
+}
+
+/* ── REGENERATE BAR ──────────────────────────────────────────────────── */
+.regenBar {
+  display: flex;
+  justify-content: center;
+  padding: 8px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.regenBtn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 50px;
+  padding: 7px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink2);
+  cursor: pointer;
+  font-family: "DM Sans", sans-serif;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.regenBtn:hover {
+  border-color: var(--accent);
+  color: var(--ink);
+}
