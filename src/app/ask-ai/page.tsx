@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { db, storage } from "@/lib/firebase";
 import {
   collection, query, orderBy, onSnapshot,
-  addDoc, setDoc, doc, serverTimestamp, Timestamp,
+  addDoc, setDoc, doc, serverTimestamp, Timestamp, deleteDoc,
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import Navbar from "@/components/Navbar";
@@ -23,19 +23,18 @@ const SUBJECTS = [
 
 const MARKS = ["2", "4", "6", "8", "10", "12"];
 const ACCEPTED_FILES = ".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.txt";
-const MAX_FILE_SIZE_MB = 8;
 
 interface Message {
   id?: string;
   role: "user" | "ai";
   text: string;
+  fullContent?: string | null; // stores expanded content (with PDF text) for history
   marks?: string | null;
   fileUrl?: string | null;
   fileName?: string | null;
   fileType?: string | null;
-  // extractedText is stored in session state only (not Firestore) so the AI
-  // can reference file content across messages without re-uploading.
-  extractedText?: string | null;
+  imageBase64?: string | null;
+  imageType?: string | null;
   timestamp?: Timestamp | null;
 }
 
@@ -57,8 +56,6 @@ function renderMarkdown(text: string, isCs: boolean) {
   let i = 0;
   while (i < lines.length) {
     const line = lines[i];
-
-    // Code block
     if (line.trim().startsWith("```")) {
       const lang = line.trim().slice(3).trim() || (isCs ? "python" : "");
       const codeLines: string[] = [];
@@ -76,55 +73,18 @@ function renderMarkdown(text: string, isCs: boolean) {
       );
       i++; continue;
     }
-
-    // Table
-    if (line.trim().startsWith("|")) {
-      const tableLines: string[] = [];
-      while (i < lines.length && lines[i].trim().startsWith("|")) {
-        tableLines.push(lines[i]);
-        i++;
-      }
-      const isSeparator = (l: string) => /^\s*\|[\s\-|:]+\|\s*$/.test(l);
-      const rows = tableLines.filter(l => !isSeparator(l));
-      const parseCells = (row: string) =>
-        row.split("|").map(c => c.trim()).filter((_, idx, arr) => idx > 0 && idx < arr.length - 1);
-      const [headerRow, ...bodyRows] = rows;
-      if (headerRow) {
-        elements.push(
-          <div key={`table-${i}`} className={styles.tableWrap}>
-            <table className={styles.mdTable}>
-              <thead>
-                <tr>{parseCells(headerRow).map((cell, j) => <th key={j}>{inlineMd(cell)}</th>)}</tr>
-              </thead>
-              <tbody>
-                {bodyRows.map((row, ri) => (
-                  <tr key={ri}>{parseCells(row).map((cell, j) => <td key={j}>{inlineMd(cell)}</td>)}</tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        );
-      }
-      continue;
-    }
-
-    // Bullet list
     if (/^(\s*[-•*])\s/.test(line)) {
       const items: string[] = [];
       while (i < lines.length && /^(\s*[-•*])\s/.test(lines[i])) { items.push(lines[i].replace(/^\s*[-•*]\s/, "")); i++; }
       elements.push(<ul key={`ul-${i}`} className={styles.mdList}>{items.map((it, j) => <li key={j}>{inlineMd(it)}</li>)}</ul>);
       continue;
     }
-
-    // Numbered list
     if (/^\d+\.\s/.test(line)) {
       const items: string[] = [];
       while (i < lines.length && /^\d+\.\s/.test(lines[i])) { items.push(lines[i].replace(/^\d+\.\s/, "")); i++; }
       elements.push(<ol key={`ol-${i}`} className={styles.mdList}>{items.map((it, j) => <li key={j}>{inlineMd(it)}</li>)}</ol>);
       continue;
     }
-
-    // Heading
     if (/^#{1,3}\s/.test(line)) {
       const level = (line.match(/^(#{1,3})/)?.[1].length ?? 1);
       const content = line.replace(/^#{1,3}\s/, "");
@@ -132,7 +92,6 @@ function renderMarkdown(text: string, isCs: boolean) {
       elements.push(<Tag key={`h-${i}`} className={styles.mdHeading}>{inlineMd(content)}</Tag>);
       i++; continue;
     }
-
     if (line.trim() === "") { i++; continue; }
     elements.push(<p key={`p-${i}`} className={styles.mdPara}>{inlineMd(line)}</p>);
     i++;
@@ -150,28 +109,23 @@ function inlineMd(text: string): React.ReactNode {
   });
 }
 
-// ── Extract text from file ───────────────────────────────────────────────────
+// ── Extract text from file client-side ──────────────────────────────────────
 async function extractFileText(file: File): Promise<string> {
   if (file.type === "text/plain" || file.name.endsWith(".txt")) {
     return await file.text();
   }
-
-  // ✅ PDF — always use server route (unpdf + Mistral OCR fallback)
   if (file.type === "application/pdf") {
     try {
       const formData = new FormData();
       formData.append("file", file);
       const res = await fetch("/api/extract-pdf", { method: "POST", body: formData });
-      if (!res.ok) throw new Error(`Extract API returned ${res.status}`);
       const { text } = await res.json();
       return text || "[Could not extract text from PDF]";
     } catch (err) {
-      console.error("PDF extract error:", err);
+      console.error("PDF parse error:", err);
       return "[PDF could not be read — please paste the text directly]";
     }
   }
-
-  // Images — base64 data URL for vision model
   if (file.type.startsWith("image/")) {
     return await new Promise((resolve) => {
       const reader = new FileReader();
@@ -179,28 +133,8 @@ async function extractFileText(file: File): Promise<string> {
       reader.readAsDataURL(file);
     });
   }
-
   try { return await file.text(); }
   catch { return `[File: ${file.name} — could not extract text]`; }
-}
-
-// ── Build history for API, injecting file content into the message that had it
-function buildHistory(messages: Message[]) {
-  return messages.map((m) => {
-    // For user messages that had a file, re-embed the extracted text so the AI
-    // always has access to it in subsequent turns — no re-upload needed.
-    if (m.role === "user" && m.extractedText && !m.extractedText.startsWith("data:")) {
-      const fileContext = `[File: "${m.fileName}"]\n${m.extractedText.slice(0, 3000)}`;
-      return {
-        role: "user" as const,
-        content: m.text ? `${m.text}\n\n${fileContext}` : fileContext,
-      };
-    }
-    return {
-      role: m.role === "user" ? "user" as const : "assistant" as const,
-      content: m.text || (m.fileName ? `[uploaded: ${m.fileName}]` : ""),
-    };
-  });
 }
 
 export default function AskAiPage() {
@@ -297,11 +231,6 @@ export default function AskAiPage() {
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
-      alert(`This file is ${(file.size / 1024 / 1024).toFixed(1)}MB. Maximum allowed size is ${MAX_FILE_SIZE_MB}MB.`);
-      if (fileRef.current) fileRef.current.value = "";
-      return;
-    }
     setAttachedFile(file);
     if (file.type.startsWith("image/")) {
       setFilePreview(URL.createObjectURL(file));
@@ -316,6 +245,84 @@ export default function AskAiPage() {
     if (fileRef.current) fileRef.current.value = "";
   }
 
+  // ── Core send logic — reusable for both send and regenerate ──────────────
+  async function sendToAI(
+    currentSessionId: string,
+    userText: string,
+    fullQuestion: string,
+    imageBase64: string | null,
+    imageType: string | null,
+    historyMessages: Message[],
+    aiMsgIdToReplace?: string,
+  ) {
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question: fullQuestion,
+          subject,
+          marks: marks ? parseInt(marks) : null,
+          userId: user?.uid ?? null,
+          sessionId: currentSessionId,
+          imageBase64: imageBase64 || undefined,
+          imageType: imageType || undefined,
+          // Use fullContent from history so PDF context is preserved
+          history: historyMessages.slice(-6).map((m) => ({
+            role: m.role === "user" ? "user" : "assistant",
+            content: m.fullContent || m.text || (m.fileName ? `[uploaded: ${m.fileName}]` : ""),
+          })),
+        }),
+      });
+      const data = await res.json();
+      const answer = data.reply ?? "Sorry, something went wrong.";
+
+      if (aiMsgIdToReplace && user) {
+        // Delete old AI message and add new one
+        await deleteDoc(doc(db, "ai_chats", user.uid, "sessions", currentSessionId, "messages", aiMsgIdToReplace));
+      }
+      if (user) {
+        await addDoc(
+          collection(db, "ai_chats", user.uid, "sessions", currentSessionId, "messages"),
+          { role: "ai", text: answer, timestamp: serverTimestamp() }
+        );
+      }
+    } catch {
+      if (user) {
+        await addDoc(
+          collection(db, "ai_chats", user.uid, "sessions", currentSessionId, "messages"),
+          { role: "ai", text: "Sorry, something went wrong. Please try again.", timestamp: serverTimestamp() }
+        );
+      }
+    }
+  }
+
+  // ── Regenerate last AI response ────────────────────────────────────────────
+  async function regenerate() {
+    if (sending || messages.length < 2) return;
+
+    // Find last AI message and the user message before it
+    const lastAiMsg = [...messages].reverse().find(m => m.role === "ai");
+    const lastUserMsg = [...messages].reverse().find(m => m.role === "user");
+    if (!lastAiMsg?.id || !lastUserMsg) return;
+
+    setSending(true);
+    // Use fullContent if available (has PDF text), else fall back to text
+    const fullQuestion = lastUserMsg.fullContent || lastUserMsg.text || "";
+    const historyForRegen = messages.filter(m => m.id !== lastAiMsg.id && m.id !== lastUserMsg.id);
+
+    await sendToAI(
+      sessionId,
+      lastUserMsg.text,
+      fullQuestion,
+      lastUserMsg.imageBase64 ?? null,
+      lastUserMsg.imageType ?? null,
+      historyForRegen,
+      lastAiMsg.id,
+    );
+    setSending(false);
+  }
+
   async function askQuestion() {
     if ((!question.trim() && !attachedFile) || sending || !user) return;
     const q = question.trim();
@@ -328,7 +335,6 @@ export default function AskAiPage() {
     let fileName: string | null = null;
     let fileType: string | null = null;
     let extractedContent: string | null = null;
-    let fileError: string | null = null;
 
     if (attachedFile) {
       setUploading(true);
@@ -342,28 +348,11 @@ export default function AskAiPage() {
         extractedContent = await extractFileText(attachedFile);
       } catch (err) {
         console.error("File processing error:", err);
-        fileError = err instanceof Error ? err.message : "Unknown error processing file";
       } finally {
         setUploading(false);
         setExtracting(false);
         clearFile();
       }
-    }
-
-    if (fileError) {
-      setSending(false);
-      if (isFirst) {
-        await setDoc(doc(db, "ai_chats", user.uid, "sessions", currentSessionId), {
-          subject, firstQuestion: "File upload error", timestamp: serverTimestamp(),
-        });
-        setActiveSession(currentSessionId);
-        subscribeToSession(currentSessionId);
-      }
-      await addDoc(
-        collection(db, "ai_chats", user.uid, "sessions", currentSessionId, "messages"),
-        { role: "ai", text: `Sorry, there was an error processing your file: ${fileError}. Please try again or paste the content directly.`, timestamp: serverTimestamp() }
-      );
-      return;
     }
 
     if (isFirst) {
@@ -376,32 +365,6 @@ export default function AskAiPage() {
       subscribeToSession(currentSessionId);
     }
 
-    // Save user message to Firestore (extractedText stored in local state only)
-    const userMsg: Message = {
-      role: "user",
-      text: q,
-      marks: marks || null,
-      fileUrl: fileUrl || null,
-      fileName: fileName || null,
-      fileType: fileType || null,
-      extractedText: extractedContent || null,
-      timestamp: null,
-    };
-
-    const userDocRef = await addDoc(
-      collection(db, "ai_chats", user.uid, "sessions", currentSessionId, "messages"),
-      { role: "user", text: q, marks: marks || null, fileUrl: fileUrl || null, fileName: fileName || null, fileType: fileType || null, timestamp: serverTimestamp() }
-    );
-
-    // Keep extractedText in local state so future turns can reference it
-    setMessages(prev => {
-      const exists = prev.some(m => m.id === userDocRef.id);
-      if (exists) {
-        return prev.map(m => m.id === userDocRef.id ? { ...m, extractedText: extractedContent } : m);
-      }
-      return [...prev, { ...userMsg, id: userDocRef.id }];
-    });
-
     let imageBase64: string | null = null;
     let imageType: string | null = null;
     let fullQuestion = q;
@@ -413,106 +376,25 @@ export default function AskAiPage() {
       fullQuestion = `${q ? q + "\n\n" : ""}[The user has uploaded a file: "${fileName}". Here is its content:]\n\n${extractedContent.slice(0, 4000)}`;
     }
 
-    // Build history including file content from previous messages
-    const historyForApi = buildHistory(messages.slice(-6));
-
-    try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          question: fullQuestion || `[File uploaded: ${fileName}]`,
-          subject,
-          marks: marks ? parseInt(marks) : null,
-          userId: user.uid,
-          sessionId: currentSessionId,
-          imageBase64: imageBase64 || undefined,
-          imageType: imageType || undefined,
-          history: historyForApi,
-        }),
-      });
-      const data = await res.json();
-      await addDoc(
-        collection(db, "ai_chats", user.uid, "sessions", currentSessionId, "messages"),
-        { role: "ai", text: data.reply ?? "Sorry, something went wrong.", timestamp: serverTimestamp() }
-      );
-    } catch {
-      await addDoc(
-        collection(db, "ai_chats", user.uid, "sessions", currentSessionId, "messages"),
-        { role: "ai", text: "Sorry, something went wrong. Please try again.", timestamp: serverTimestamp() }
-      );
-    } finally {
-      setSending(false);
-    }
-  }
-
-  // Regenerate: replaces last AI response instead of appending a new one,
-  // and includes full history with file context so no re-upload needed.
-  async function regenerateLastResponse() {
-    if (sending || !user) return;
-
-    // Find the last AI message index and last user message
-    const lastAiIndex = [...messages].map((m, i) => ({ m, i })).reverse().find(({ m }) => m.role === "ai");
-    const lastUser = [...messages].reverse().find(m => m.role === "user");
-    if (!lastAiIndex || !lastUser) return;
-
-    const lastAiMsg = lastAiIndex.m;
-    setSending(true);
-
-    try {
-      // Build history up to (but not including) the last AI message
-      const historyUpToLastAi = buildHistory(messages.slice(0, lastAiIndex.i));
-
-      // Rebuild the user question with file content if it had one
-      let regenQuestion = lastUser.text || `[File: ${lastUser.fileName}]`;
-      if (lastUser.extractedText && !lastUser.extractedText.startsWith("data:")) {
-        regenQuestion = `${lastUser.text ? lastUser.text + "\n\n" : ""}[The user has uploaded a file: "${lastUser.fileName}". Here is its content:]\n\n${lastUser.extractedText.slice(0, 4000)}`;
+    // Save user message — store fullContent so regenerate can access PDF text
+    await addDoc(
+      collection(db, "ai_chats", user.uid, "sessions", currentSessionId, "messages"),
+      {
+        role: "user",
+        text: q,
+        fullContent: fullQuestion, // ← key fix: saves expanded content with PDF text
+        marks: marks || null,
+        fileUrl: fileUrl || null,
+        fileName: fileName || null,
+        fileType: fileType || null,
+        imageBase64: imageBase64 || null,
+        imageType: imageType || null,
+        timestamp: serverTimestamp(),
       }
+    );
 
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          question: regenQuestion,
-          subject,
-          marks: lastUser.marks ? parseInt(lastUser.marks) : null,
-          userId: user.uid,
-          sessionId,
-          history: historyUpToLastAi,
-          imageBase64: (() => {
-            if (lastUser.extractedText?.startsWith("data:")) {
-              const m = lastUser.extractedText.match(/^data:([^;]+);base64,(.+)$/);
-              return m ? m[2] : undefined;
-            }
-          })(),
-          imageType: (() => {
-            if (lastUser.extractedText?.startsWith("data:")) {
-              const m = lastUser.extractedText.match(/^data:([^;]+);base64,(.+)$/);
-              return m ? m[1] : undefined;
-            }
-          })(),
-        }),
-      });
-      const data = await res.json();
-      const newText = data.reply ?? "Sorry, something went wrong.";
-
-      // Update the existing AI message doc in Firestore instead of adding a new one
-      if (lastAiMsg.id) {
-        const msgRef = doc(db, "ai_chats", user.uid, "sessions", sessionId, "messages", lastAiMsg.id);
-        await import("firebase/firestore").then(({ updateDoc }) =>
-          updateDoc(msgRef, { text: newText, timestamp: serverTimestamp() })
-        );
-      } else {
-        await addDoc(
-          collection(db, "ai_chats", user.uid, "sessions", sessionId, "messages"),
-          { role: "ai", text: newText, timestamp: serverTimestamp() }
-        );
-      }
-    } catch {
-      // silently fail — don't clobber the existing message
-    } finally {
-      setSending(false);
-    }
+    await sendToAI(currentSessionId, q, fullQuestion, imageBase64, imageType, messages);
+    setSending(false);
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -526,6 +408,7 @@ export default function AskAiPage() {
 
   const activeSubject = SUBJECTS.find((s) => s.id === subject);
   const isCs = subject === "computer-science";
+  const canRegenerate = messages.length >= 2 && messages[messages.length - 1]?.role === "ai";
 
   if (loading || !user) return (
     <div className={styles.loadingScreen}><div className={styles.spinner} /></div>
@@ -630,21 +513,20 @@ export default function AskAiPage() {
                 <div className={styles.msgBubbleWrap}>
                   {msg.role === "user" && msg.marks && <div className={styles.msgMeta}>{msg.marks} marks</div>}
                   <div className={`${styles.msgBubble} ${msg.role === "user" ? styles.bubbleUser : styles.bubbleAi}`}>
+                    {/* Fix 1: File ABOVE text */}
                     {msg.fileUrl && (
-                      msg.fileType?.startsWith("image/")
-                        ? <img src={msg.fileUrl} alt={msg.fileName ?? "attachment"} className={styles.attachedImage} />
-                        : <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className={styles.attachedFile}>📎 {msg.fileName}</a>
+                      <div className={styles.fileAttachment}>
+                        {msg.fileType?.startsWith("image/")
+                          ? <img src={msg.fileUrl} alt={msg.fileName ?? "attachment"} className={styles.attachedImage} />
+                          : <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className={styles.attachedFile}>📎 {msg.fileName}</a>
+                        }
+                      </div>
                     )}
                     {msg.text && (msg.role === "ai" ? renderMarkdown(msg.text, isCs) : <span>{msg.text}</span>)}
                   </div>
                   {msg.role === "ai" && (
                     <div className={styles.msgActions}>
                       <button className={styles.copyBtn} onClick={() => navigator.clipboard.writeText(msg.text)}>📋 Copy</button>
-                      {i === messages.length - 1 && (
-                        <button className={styles.regenBtn} disabled={sending} onClick={regenerateLastResponse}>
-                          🔄 Regenerate
-                        </button>
-                      )}
                     </div>
                   )}
                 </div>
@@ -665,6 +547,15 @@ export default function AskAiPage() {
             <div ref={bottomRef} />
           </div>
 
+          {/* Regenerate button */}
+          {canRegenerate && !sending && (
+            <div className={styles.regenBar}>
+              <button className={styles.regenBtn} onClick={regenerate}>
+                ↻ Regenerate response
+              </button>
+            </div>
+          )}
+
           {attachedFile && (
             <div className={styles.filePreviewBar}>
               {filePreview
@@ -679,28 +570,22 @@ export default function AskAiPage() {
 
           <div className={styles.inputArea}>
             <input type="file" accept={ACCEPTED_FILES} ref={fileRef} onChange={handleFileChange} className={styles.hiddenFile} />
-            <div className={styles.inputRow}>
-              <button
-                className={`${styles.attachBtn} ${attachedFile ? styles.attachBtnActive : ""}`}
-                onClick={() => fileRef.current?.click()}
-                title="Attach image, PDF, or document"
-              >📎</button>
-              <textarea
-                className={styles.textInput}
-                placeholder={attachedFile ? `Add a message about ${attachedFile.name}... (optional)` : `Ask about ${activeSubject?.name}... (Enter to send)`}
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-                onKeyDown={handleKeyDown}
-                rows={2}
-              />
-              <button
-                className={styles.sendBtn}
-                onClick={askQuestion}
-                disabled={sending || uploading || extracting || (!question.trim() && !attachedFile)}
-              >
-                {uploading || extracting ? "⏫" : sending ? "..." : "↑"}
-              </button>
-            </div>
+            <button
+              className={`${styles.attachBtn} ${attachedFile ? styles.attachBtnActive : ""}`}
+              onClick={() => fileRef.current?.click()}
+              title="Attach image, PDF, or document"
+            >📎</button>
+            <textarea
+              className={styles.textInput}
+              placeholder={attachedFile ? `Add a message about ${attachedFile.name}... (optional)` : `Ask about ${activeSubject?.name}... (Enter to send)`}
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              onKeyDown={handleKeyDown}
+              rows={2}
+            />
+            <button className={styles.sendBtn} onClick={askQuestion} disabled={sending || uploading || extracting || (!question.trim() && !attachedFile)}>
+              {uploading || extracting ? "⏫" : sending ? "..." : "↑"}
+            </button>
           </div>
         </div>
       </div>
