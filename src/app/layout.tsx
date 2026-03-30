@@ -30,6 +30,11 @@ export default function RootLayout({
           name="google-site-verification" 
           content="S8xwMMjB-B5LIkkGjDEXCx3LsZkYE9RUBpm51QlMc8c" 
         />
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3645158319821683"
+          crossOrigin="anonymous"
+        />
       </head>
       <body>
         <ThemeProvider>
