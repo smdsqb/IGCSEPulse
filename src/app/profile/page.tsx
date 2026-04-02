@@ -36,8 +36,8 @@ export default function ProfilePage() {
   const earnedBadges = profile.badges ?? [];
   const streakDays = profile.streak ?? 0;
   const rep = profile.rep ?? 0;
-  const aiCount = profile.aiQuestionCount ?? 0;
-  const msgCount = profile.communityMessageCount ?? 0;
+  const aiCount = (profile as any).aiQuestionCount ?? 0;
+  const msgCount = (profile as any).communityMessageCount ?? 0;
 
   return (
     <>
