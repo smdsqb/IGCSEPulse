@@ -27,7 +27,7 @@
   align-items: center;
 }
 .navLinks a {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--ink2);
   text-decoration: none;
@@ -40,7 +40,7 @@
 .navTextBtn {
   background: none;
   border: none;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--ink2);
   cursor: pointer;
