@@ -182,10 +182,10 @@ export default function Navbar() {
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
           >
-            <span className={styles.themeSwitchIcon}>
-              {theme === "dark" ? "🌙" : "☀️"}
-            </span>
             <span className={`${styles.themeSwitchKnob} ${theme === "light" ? styles.themeSwitchKnobRight : ""}`} />
+            <span className={styles.themeSwitchIcon}>
+              {theme === "dark" ? "☀️" : "🌙"}
+            </span>
           </button>
 
           {!loading && (
