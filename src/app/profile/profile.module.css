@@ -1,0 +1,168 @@
+.loadingScreen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+}
+.spinner {
+  width: 36px; height: 36px;
+  border: 3px solid var(--border);
+  border-top-color: var(--pulse);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.main {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 40px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.profileHeader {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 28px;
+}
+
+.avatarWrap { flex-shrink: 0; }
+.avatarImg {
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--pulse);
+}
+.avatarInitials {
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  background: rgba(255,77,109,0.15);
+  color: var(--pulse);
+  font-size: 28px;
+  font-weight: 800;
+  font-family: "Syne", sans-serif;
+  display: flex; align-items: center; justify-content: center;
+  border: 3px solid var(--pulse);
+}
+
+.profileInfo { flex: 1; }
+.profileName {
+  font-family: "Syne", sans-serif;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+.profileEmail { font-size: 13px; color: var(--ink2); margin-bottom: 16px; }
+
+.profileStats {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.stat { text-align: center; }
+.statVal {
+  font-family: "Syne", sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--pulse);
+}
+.statLabel { font-size: 11px; color: var(--ink2); font-weight: 600; }
+.statDivider { width: 1px; height: 32px; background: var(--border); }
+
+.section { display: flex; flex-direction: column; gap: 16px; }
+.sectionTitle {
+  font-family: "Syne", sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.streakCard {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.streakNumber {
+  font-family: "Syne", sans-serif;
+  font-size: 56px;
+  font-weight: 800;
+  color: var(--pulse);
+  line-height: 1;
+}
+.streakLabel { font-size: 14px; color: var(--ink2); }
+.streakDots {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0;
+}
+.streakDot {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: var(--border);
+}
+.streakDotActive { background: var(--pulse); }
+.streakHint { font-size: 13px; color: var(--ink2); text-align: center; }
+
+.badgeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+.badgeCard {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  transition: transform 0.15s;
+}
+.badgeCard:hover { transform: translateY(-2px); }
+.badgeEarned { border-color: var(--pulse); background: rgba(255,77,109,0.05); }
+.badgeLocked { opacity: 0.5; }
+.badgeIcon { font-size: 32px; }
+.badgeLabel { font-size: 12px; font-weight: 700; color: var(--ink); }
+.badgeDesc { font-size: 11px; color: var(--ink2); line-height: 1.4; }
+.badgeEarnedTag {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--pulse);
+  background: rgba(255,77,109,0.1);
+  border-radius: 50px;
+  padding: 2px 8px;
+}
+
+.subjectBadges { display: flex; flex-wrap: wrap; gap: 10px; }
+.subjectBadge {
+  background: var(--tag-bg);
+  color: var(--tag-text);
+  border-radius: 50px;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+.emptyState { font-size: 13px; color: var(--ink2); }
+
+@media (max-width: 600px) {
+  .profileHeader { flex-direction: column; text-align: center; }
+  .profileStats { justify-content: center; }
+  .badgeGrid { grid-template-columns: repeat(2, 1fr); }
+}
