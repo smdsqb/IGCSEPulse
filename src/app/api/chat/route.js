@@ -8,14 +8,7 @@ import chemistry from '@/data/chemistry_syllabus.json';
 import cs from '@/data/computer-science_syllabus.json';
 import english from '@/data/english_syllabus.json';
 
-const syllabuses = {
-  business,
-  math,
-  physics,
-  chemistry,
-  'computer-science': cs,
-  english,
-};
+const syllabuses = { business, math, physics, chemistry, 'computer-science': cs, english };
 
 function getAdminDb() {
   if (getApps().length === 0) {
@@ -32,66 +25,26 @@ function getAdminDb() {
 
 export async function POST(request) {
   try {
-    const { question, subject, marks, userId, sessionId, history = [], imageBase64, imageType } = await request.json();
+    const { question, subject, marks, userId, sessionId, history = [] } = await request.json();
 
     const data = syllabuses[subject];
-    if (!data) {
-      return NextResponse.json({ reply: 'Subject not found.' });
-    }
+    if (!data) return NextResponse.json({ reply: 'Subject not found.' });
 
     const systemPrompt = `You are a Cambridge IGCSE ${data.name} (${data.code}) examiner and tutor.
 Syllabus content: ${data.syllabus.content}
 Topics: ${data.syllabus.topics?.map((t) => t.topicName).join(', ') || ''}
-
 Rules:
 - Answer based on the Cambridge IGCSE syllabus and any file content the student shares.
-- When the user uploads an image, carefully analyse it and help them with its content in the context of IGCSE ${data.name}.
+- When the user uploads a file or image, read its content carefully and help them with it in the context of IGCSE ${data.name}.
 - For ${marks || 'any'} marks, follow the Cambridge marking scheme format.
 - For 6+ marks, always include evaluation/judgement.
 - Be concise, student-friendly, and examiner-accurate.
-- You have access to the conversation history. Maintain context across messages.
-- If file content appears garbled, partially extracted, or OCR-processed, still do your best to help based on whatever text is readable. Never ask the student to paste text manually if any file content was provided — always attempt to work with it.
-- For Cambridge IGCSE Business Studies case study inserts, the content typically includes a business scenario with financial data, tables, and context. Use your knowledge of the syllabus to interpret and assist even if the extraction is imperfect.
-
-Formatting rules (ALWAYS follow these):
-- Use **bold** for key terms, headings, and important points (e.g. **Point**, **Evaluation**).
-- Use bullet points (- ) for lists of points or examples.
-- Use numbered lists (1. 2. 3.) for step-by-step answers or mark scheme structures.
-- Use ### for section headings (e.g. ### Point, ### Evidence, ### Explanation, ### Evaluation).
-- For mark scheme answers, always structure as: ### Point → ### Evidence → ### Explanation → ### Evaluation.
-- Separate sections with a blank line.
-- Never use asterisks as decorative symbols — only for **bold** and *italic*.
-- Keep responses well-structured and easy to read.`;
-
-    // Determine if this is an image message needing vision model
-    const isImageMessage = !!(imageBase64 && imageType);
-    const model = isImageMessage
-      ? 'meta-llama/llama-4-scout-17b-16e-instruct'
-      : 'llama-3.3-70b-versatile';
-
-    // Build user content — vision format for images, plain string for text
-    let userContent;
-    if (isImageMessage) {
-      userContent = [
-        {
-          type: 'image_url',
-          image_url: {
-            url: `data:${imageType};base64,${imageBase64}`,
-          },
-        },
-        {
-          type: 'text',
-          text: question || 'Please analyse this image and help me with any IGCSE-related content.',
-        },
-      ];
-    } else {
-      userContent = question;
-    }
+- You have access to the conversation history. Maintain context across messages.`;
 
     const chatMessages = [
       { role: 'system', content: systemPrompt },
       ...history.slice(-6),
-      { role: 'user', content: userContent },
+      { role: 'user', content: question },
     ];
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -101,7 +54,7 @@ Formatting rules (ALWAYS follow these):
         Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
       },
       body: JSON.stringify({
-        model,
+        model: 'llama-3.3-70b-versatile',
         max_tokens: 1000,
         temperature: 0.3,
         messages: chatMessages,
@@ -115,22 +68,23 @@ Formatting rules (ALWAYS follow these):
     }
 
     const result = await response.json();
-
-    if (!result.choices?.[0]) {
-      console.error('Invalid Groq response:', result);
-      return NextResponse.json({ reply: 'Sorry, I received an invalid response. Please try again.' });
-    }
+    if (!result.choices?.[0]) return NextResponse.json({ reply: 'Sorry, invalid response. Please try again.' });
 
     const answer = result.choices[0].message.content;
 
     try {
       if (userId && userId !== 'anonymous' && sessionId) {
         const adminDb = getAdminDb();
+        const userRef = adminDb.collection('users').doc(userId);
+        await userRef.set({
+          aiQuestionCount: getFirestore.FieldValue?.increment(1) ?? 1,
+          rep: getFirestore.FieldValue?.increment(2) ?? 2,
+          lastActivity: new Date(),
+        }, { merge: true });
+
         await adminDb
-          .collection('ai_chats')
-          .doc(userId)
-          .collection('sessions')
-          .doc(sessionId)
+          .collection('ai_chats').doc(userId)
+          .collection('sessions').doc(sessionId)
           .set({ lastActivity: new Date() }, { merge: true });
       }
     } catch (dbError) {
@@ -138,7 +92,6 @@ Formatting rules (ALWAYS follow these):
     }
 
     return NextResponse.json({ reply: answer, code: data.code });
-
   } catch (error) {
     console.error('API Error:', error);
     return NextResponse.json({ reply: `Error: ${error.message || 'Please try again.'}` }, { status: 500 });
