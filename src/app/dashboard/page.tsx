@@ -8,14 +8,11 @@ import styles from "./dashboard.module.css";
 import Link from "next/link";
 
 export default function DashboardPage() {
-  const { user, loading } = useAuth();
+  const { user, loading, profile } = useAuth();
   const router = useRouter();
 
-  // Redirect to login if not authenticated
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/login");
-    }
+    if (!loading && !user) router.push("/login");
   }, [user, loading, router]);
 
   if (loading || !user) return null;
@@ -28,44 +25,43 @@ export default function DashboardPage() {
     <>
       <Navbar />
       <main className={styles.main}>
+
         {/* Greeting */}
         <div className={styles.greeting}>
           <div className={styles.greetingBadge}>
             <span className={styles.pulseDot} />
             Dashboard
           </div>
-          <h1>
-            Hey, <em>{firstName}</em> 👋
-          </h1>
+          <h1>Hey, <em>{firstName}</em> 👋</h1>
           <p>What do you want to do today?</p>
         </div>
 
-        {/* Two Option Cards */}
+        {/* Stats row */}
+        {profile && (
+          <div className={styles.statsRow}>
+            <div className={styles.statPill}>🔥 {profile.streak ?? 0} day streak</div>
+            <div className={styles.statPill}>⭐ {profile.rep ?? 0} rep</div>
+            <div className={styles.statPill}>🏅 {(profile.badges ?? []).length} badges</div>
+          </div>
+        )}
+
+        {/* Cards */}
         <div className={styles.cards}>
 
-          {/* Community Card */}
           <Link href="/community" className={styles.card}>
-            <div className={`${styles.cardIcon} ${styles.iconCommunity}`}>
-              💬
-            </div>
+            <div className={`${styles.cardIcon} ${styles.iconCommunity}`}>💬</div>
             <div className={styles.cardContent}>
               <div className={styles.cardTitle}>Community</div>
-              <div className={styles.cardDesc}>
-                Ask doubts, help fellow students, discuss topics, and get
-                mark scheme explanations from peers.
-              </div>
+              <div className={styles.cardDesc}>Ask doubts, help fellow students, discuss topics, and get mark scheme explanations from peers.</div>
               <div className={styles.cardStats}>
-                <span>2,400+ students</span>
-                <span>·</span>
-                <span>840 questions</span>
-                <span>·</span>
+                <span>2,400+ students</span><span>·</span>
+                <span>840 questions</span><span>·</span>
                 <span className={styles.statGreen}>98% resolved</span>
               </div>
             </div>
             <div className={styles.cardArrow}>→</div>
           </Link>
 
-          {/* AI Card — LIVE */}
           <Link href="/ask-ai" className={styles.card}>
             <div className={`${styles.cardIcon} ${styles.iconAi}`}>✦</div>
             <div className={styles.cardContent}>
@@ -73,16 +69,41 @@ export default function DashboardPage() {
                 <div className={styles.cardTitle}>Ask AI</div>
                 <span className={`${styles.badge} ${styles.badgeLive}`}>Live ✦</span>
               </div>
-              <div className={styles.cardDesc}>
-                Your personal IGCSE tutor trained on the full syllabus, past
-                papers and mark schemes. Ask anything — get examiner-accurate answers.
-              </div>
+              <div className={styles.cardDesc}>Your personal IGCSE tutor trained on the full syllabus, past papers and mark schemes.</div>
               <div className={styles.cardStats}>
-                <span>6 subjects</span>
-                <span>·</span>
-                <span>Powered by Groq API</span>
-                <span>·</span>
+                <span>6 subjects</span><span>·</span>
+                <span>Powered by Groq</span><span>·</span>
                 <span className={styles.statGreen}>Live now</span>
+              </div>
+            </div>
+            <div className={styles.cardArrow}>→</div>
+          </Link>
+
+          <Link href="/challenges" className={styles.card}>
+            <div className={`${styles.cardIcon} ${styles.iconChallenge}`}>⚡</div>
+            <div className={styles.cardContent}>
+              <div className={styles.cardTitleRow}>
+                <div className={styles.cardTitle}>Challenge Corner</div>
+                <span className={`${styles.badge} ${styles.badgeNew}`}>New</span>
+              </div>
+              <div className={styles.cardDesc}>Daily timed challenges to test your IGCSE knowledge. Earn rep, unlock badges, beat the clock.</div>
+              <div className={styles.cardStats}>
+                <span>Timed challenges</span><span>·</span>
+                <span>Earn rep</span><span>·</span>
+                <span className={styles.statGreen}>New daily</span>
+              </div>
+            </div>
+            <div className={styles.cardArrow}>→</div>
+          </Link>
+
+          <Link href="/leaderboard" className={styles.card}>
+            <div className={`${styles.cardIcon} ${styles.iconLeaderboard}`}>🏆</div>
+            <div className={styles.cardContent}>
+              <div className={styles.cardTitle}>Leaderboard</div>
+              <div className={styles.cardDesc}>See where you rank among all IGCSE Pulse students. Climb the board by earning rep.</div>
+              <div className={styles.cardStats}>
+                <span>Top 20 students</span><span>·</span>
+                <span className={styles.statGreen}>Live rankings</span>
               </div>
             </div>
             <div className={styles.cardArrow}>→</div>
@@ -90,10 +111,7 @@ export default function DashboardPage() {
 
         </div>
 
-        {/* Footer note */}
-        <p className={styles.footNote}>
-          More features dropping soon. Stay tuned.
-        </p>
+        <p className={styles.footNote}>More features dropping soon. Stay tuned.</p>
       </main>
     </>
   );
