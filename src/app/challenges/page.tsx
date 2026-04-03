@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
 import {
   collection, query, orderBy, onSnapshot,
-  doc, getDoc, addDoc, serverTimestamp, where, getDocs
+  addDoc, serverTimestamp, where,
 } from "firebase/firestore";
 import Navbar from "@/components/Navbar";
 import styles from "./challenges.module.css";
@@ -20,7 +20,7 @@ interface Challenge {
   subject: string;
   marks: number;
   difficulty: "easy" | "medium" | "hard";
-  timeLimit: number; // minutes
+  timeLimit: number;
   keywords: string[];
   createdAt: any;
   date: string;
@@ -32,32 +32,32 @@ interface Submission {
   answer: string;
   score: number;
   passed: boolean;
+  feedback?: string;
   submittedAt: any;
 }
 
 export default function ChallengePage() {
-  const { user, loading, profile, refreshProfile } = useAuth();
+  const { user, loading, refreshProfile } = useAuth();
   const router = useRouter();
 
-  const [challenges, setChallenges]         = useState<Challenge[]>([]);
-  const [fetching, setFetching]             = useState(true);
-  const [activeChallenge, setActiveChallenge] = useState<Challenge | null>(null);
-  const [answer, setAnswer]                 = useState("");
-  const [timeLeft, setTimeLeft]             = useState(0);
-  const [timerActive, setTimerActive]       = useState(false);
-  const [submitting, setSubmitting]         = useState(false);
-  const [result, setResult]                 = useState<{ passed: boolean; score: number; feedback: string } | null>(null);
-  const [submissions, setSubmissions]       = useState<Record<string, Submission>>({});
-  const [filterSubject, setFilterSubject]   = useState("all");
+  const [challenges, setChallenges]             = useState<Challenge[]>([]);
+  const [fetching, setFetching]                 = useState(true);
+  const [activeChallenge, setActiveChallenge]   = useState<Challenge | null>(null);
+  const [answer, setAnswer]                     = useState("");
+  const [timeLeft, setTimeLeft]                 = useState(0);
+  const [timerActive, setTimerActive]           = useState(false);
+  const [submitting, setSubmitting]             = useState(false);
+  const [result, setResult]                     = useState<{ passed: boolean; score: number; feedback: string } | null>(null);
+  const [submissions, setSubmissions]           = useState<Record<string, Submission>>({});
+  const [filterSubject, setFilterSubject]       = useState("all");
   const [filterDifficulty, setFilterDifficulty] = useState("all");
-  const [searchQuery, setSearchQuery]       = useState("");
-  const [started, setStarted]               = useState(false);
+  const [searchQuery, setSearchQuery]           = useState("");
+  const [started, setStarted]                   = useState(false);
 
   useEffect(() => {
     if (!loading && !user) router.push("/login");
   }, [user, loading, router]);
 
-  // Load challenges
   useEffect(() => {
     if (!user) return;
     const q = query(collection(db, "challenges"), orderBy("createdAt", "desc"));
@@ -68,7 +68,6 @@ export default function ChallengePage() {
     return unsub;
   }, [user]);
 
-  // Load user's submissions
   useEffect(() => {
     if (!user) return;
     const q = query(collection(db, "challenge_submissions"), where("userId", "==", user.uid));
@@ -83,7 +82,6 @@ export default function ChallengePage() {
     return unsub;
   }, [user]);
 
-  // Timer countdown
   useEffect(() => {
     if (!timerActive || timeLeft <= 0) return;
     const interval = setInterval(() => {
@@ -115,75 +113,52 @@ export default function ChallengePage() {
   }
 
   async function handleSubmit(autoSubmit = false) {
-  if (!activeChallenge || !user) return;
-  if (!answer.trim() && !autoSubmit) return;
-  setSubmitting(true);
-  setTimerActive(false);
+    if (!activeChallenge || !user) return;
+    if (!answer.trim() && !autoSubmit) return;
+    setSubmitting(true);
+    setTimerActive(false);
 
-  try {
-    const response = await fetch("/api/mark-challenge", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        question: activeChallenge.question,
-        answer: answer.trim() || "[No answer submitted — time ran out]",
-        marks: activeChallenge.marks,
-        subject: activeChallenge.subject,
-        keywords: activeChallenge.keywords,
-      }),
-    });
+    try {
+      const response = await fetch("/api/mark-challenge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question: activeChallenge.question,
+          answer: answer.trim() || "[No answer submitted — time ran out]",
+          marks: activeChallenge.marks,
+          subject: activeChallenge.subject,
+          keywords: activeChallenge.keywords,
+        }),
+      });
 
-    const data = await response.json();
-    const passed = data.score >= Math.ceil(activeChallenge.marks * 0.5);
+      const data = await response.json();
+      const passed = data.score >= Math.ceil(activeChallenge.marks * 0.5);
 
-    await addDoc(collection(db, "challenge_submissions"), {
-      challengeId: activeChallenge.id,
-      userId: user.uid,
-      answer: answer.trim(),
-      score: data.score,
-      passed,
-      feedback: data.feedback,
-      submittedAt: serverTimestamp(),
-    });
+      await addDoc(collection(db, "challenge_submissions"), {
+        challengeId: activeChallenge.id,
+        userId: user.uid,
+        answer: answer.trim(),
+        score: data.score,
+        passed,
+        feedback: data.feedback,
+        submittedAt: serverTimestamp(),
+      });
 
-    if (passed) {
-      const { doc: firestoreDoc, updateDoc, increment } = await import("firebase/firestore");
-      const userRef = firestoreDoc(db, "users", user.uid);
-      const repGain = activeChallenge.difficulty === "hard" ? 20 : activeChallenge.difficulty === "medium" ? 10 : 5;
-      await updateDoc(userRef, { rep: increment(repGain) });
-      await refreshProfile();
+      if (passed) {
+        const { doc: firestoreDoc, updateDoc, increment } = await import("firebase/firestore");
+        const userRef = firestoreDoc(db, "users", user.uid);
+        const repGain = activeChallenge.difficulty === "hard" ? 20 : activeChallenge.difficulty === "medium" ? 10 : 5;
+        await updateDoc(userRef, { rep: increment(repGain) });
+        await refreshProfile();
+      }
+
+      setResult({ passed, score: data.score, feedback: data.feedback });
+    } catch (err) {
+      console.error("Marking error:", err);
+      setResult({ passed: false, score: 0, feedback: "Something went wrong while marking. Please try again." });
+    } finally {
+      setSubmitting(false);
     }
-
-    setResult({ passed, score: data.score, feedback: data.feedback });
-  } catch (err) {
-    console.error("Marking error:", err);
-    setResult({ passed: false, score: 0, feedback: "Something went wrong while marking. Please try again." });
-  } finally {
-    setSubmitting(false);
-  }
-}
-
-    // Save submission
-    await addDoc(collection(db, "challenge_submissions"), {
-      challengeId: activeChallenge.id,
-      userId: user.uid,
-      answer: answer.trim(),
-      score,
-      passed,
-      submittedAt: serverTimestamp(),
-    });
-
-    // Award rep if passed
-    if (passed) {
-      const { doc: firestoreDoc, updateDoc, increment } = await import("firebase/firestore");
-      const userRef = firestoreDoc(db, "users", user.uid);
-      const repGain = activeChallenge.difficulty === "hard" ? 20 : activeChallenge.difficulty === "medium" ? 10 : 5;
-      await updateDoc(userRef, { rep: increment(repGain) });
-      await refreshProfile();
-    }
-
-    setResult({ passed, score, feedback });
-    setSubmitting(false);
   }
 
   function formatTime(secs: number) {
@@ -208,19 +183,16 @@ export default function ChallengePage() {
       <Navbar />
       <main className={styles.main}>
 
-        {/* Header */}
         <div className={styles.header}>
           <div className={styles.headerBadge}>⚡ Challenge Corner</div>
           <h1>Daily Challenges</h1>
           <p>Test your IGCSE knowledge. Beat the timer. Earn rep.</p>
         </div>
 
-        {/* Active challenge modal */}
         {activeChallenge && (
-          <div className={styles.modalOverlay} onClick={() => { if (!started) { setActiveChallenge(null); } }}>
+          <div className={styles.modalOverlay} onClick={() => { if (!started) setActiveChallenge(null); }}>
             <div className={styles.modal} onClick={e => e.stopPropagation()}>
 
-              {/* Header */}
               <div className={styles.modalHeader}>
                 <div className={styles.modalMeta}>
                   <span className={`${styles.diffBadge} ${diffColor(activeChallenge.difficulty)}`}>{activeChallenge.difficulty}</span>
@@ -240,7 +212,6 @@ export default function ChallengePage() {
               <h2 className={styles.modalTitle}>{activeChallenge.title}</h2>
               <div className={styles.questionBox}>{activeChallenge.question}</div>
 
-              {/* Result */}
               {result ? (
                 <div className={`${styles.resultBox} ${result.passed ? styles.resultPass : styles.resultFail}`}>
                   <div className={styles.resultIcon}>{result.passed ? "🎉" : "📚"}</div>
@@ -283,7 +254,6 @@ export default function ChallengePage() {
           </div>
         )}
 
-        {/* Filters */}
         <div className={styles.filters}>
           <input
             className={styles.searchInput}
@@ -303,7 +273,6 @@ export default function ChallengePage() {
           </select>
         </div>
 
-        {/* Challenge list */}
         {fetching ? (
           <div className={styles.fetching}><div className={styles.spinner} /></div>
         ) : filtered.length === 0 ? (
@@ -347,5 +316,5 @@ export default function ChallengePage() {
         )}
       </main>
     </>
-  );
-  }
+  )
+}
