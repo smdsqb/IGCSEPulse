@@ -115,31 +115,53 @@ export default function ChallengePage() {
   }
 
   async function handleSubmit(autoSubmit = false) {
-    if (!activeChallenge || !user) return;
-    if (!answer.trim() && !autoSubmit) return;
-    setSubmitting(true);
-    setTimerActive(false);
+  if (!activeChallenge || !user) return;
+  if (!answer.trim() && !autoSubmit) return;
+  setSubmitting(true);
+  setTimerActive(false);
 
-    // Flexible keyword matching — checks each word in the keyword phrase
-    const answerLower = answer.toLowerCase();
-    const matched = activeChallenge.keywords.filter(kw => {
-      const kwLower = kw.toLowerCase();
-      // Direct match
-      if (answerLower.includes(kwLower)) return true;
-      // Match if most words in the keyword phrase appear in the answer
-      const words = kwLower.split(" ").filter(w => w.length > 3);
-      if (words.length === 0) return false;
-      const wordsFound = words.filter(w => answerLower.includes(w));
-      return wordsFound.length >= Math.ceil(words.length * 0.6);
+  try {
+    const response = await fetch("/api/mark-challenge", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        question: activeChallenge.question,
+        answer: answer.trim() || "[No answer submitted — time ran out]",
+        marks: activeChallenge.marks,
+        subject: activeChallenge.subject,
+        keywords: activeChallenge.keywords,
+      }),
     });
 
-    const score = Math.round((matched.length / activeChallenge.keywords.length) * activeChallenge.marks);
-    // Pass if they matched at least 1 keyword (not 50% of marks)
-    const passed = matched.length >= 1;
+    const data = await response.json();
+    const passed = data.score >= Math.ceil(activeChallenge.marks * 0.5);
 
-    const feedback = passed
-      ? `Great job! You covered ${matched.length}/${activeChallenge.keywords.length} key points. Score: ${score}/${activeChallenge.marks}`
-      : `You didn't cover enough key points (${matched.length}/${activeChallenge.keywords.length}). Score: ${score}/${activeChallenge.marks}. Keep practising!`;
+    await addDoc(collection(db, "challenge_submissions"), {
+      challengeId: activeChallenge.id,
+      userId: user.uid,
+      answer: answer.trim(),
+      score: data.score,
+      passed,
+      feedback: data.feedback,
+      submittedAt: serverTimestamp(),
+    });
+
+    if (passed) {
+      const { doc: firestoreDoc, updateDoc, increment } = await import("firebase/firestore");
+      const userRef = firestoreDoc(db, "users", user.uid);
+      const repGain = activeChallenge.difficulty === "hard" ? 20 : activeChallenge.difficulty === "medium" ? 10 : 5;
+      await updateDoc(userRef, { rep: increment(repGain) });
+      await refreshProfile();
+    }
+
+    setResult({ passed, score: data.score, feedback: data.feedback });
+  } catch (err) {
+    console.error("Marking error:", err);
+    setResult({ passed: false, score: 0, feedback: "Something went wrong while marking. Please try again." });
+  } finally {
+    setSubmitting(false);
+  }
+}
 
     // Save submission
     await addDoc(collection(db, "challenge_submissions"), {
