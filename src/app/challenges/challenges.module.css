@@ -1,0 +1,356 @@
+.loadingScreen, .fetching {
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.spinner {
+  width: 36px; height: 36px;
+  border: 3px solid var(--border);
+  border-top-color: var(--pulse);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.main {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 40px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.header { text-align: center; }
+.headerBadge {
+  display: inline-block;
+  background: rgba(255,77,109,0.1);
+  color: var(--pulse);
+  border-radius: 50px;
+  padding: 4px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.header h1 {
+  font-family: "Syne", sans-serif;
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+.header p { font-size: 14px; color: var(--ink2); }
+
+/* FILTERS */
+.filters {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.searchInput {
+  flex: 1;
+  min-width: 180px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--ink);
+  font-family: "DM Sans", sans-serif;
+  outline: none;
+}
+.searchInput:focus { border-color: var(--accent); }
+.filterSelect {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--ink);
+  font-family: "DM Sans", sans-serif;
+  outline: none;
+  cursor: pointer;
+}
+
+/* CHALLENGE LIST */
+.list { display: flex; flex-direction: column; gap: 12px; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: transform 0.15s, border-color 0.15s;
+}
+.card:hover { transform: translateY(-2px); border-color: var(--accent); }
+.cardDone { opacity: 0.7; }
+.cardLeft { flex: 1; min-width: 0; }
+.cardRight { flex-shrink: 0; }
+
+.cardMeta {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.cardTitle {
+  font-family: "Syne", sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+.cardQuestion { font-size: 13px; color: var(--ink2); line-height: 1.5; }
+
+.diffBadge {
+  border-radius: 50px;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+.easy { background: rgba(0,201,167,0.12); color: #00C9A7; }
+.medium { background: rgba(255,193,7,0.12); color: #FFC107; }
+.hard { background: rgba(255,77,109,0.12); color: var(--pulse); }
+
+.subjectBadge {
+  background: var(--tag-bg);
+  color: var(--tag-text);
+  border-radius: 50px;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+.marksBadge {
+  background: var(--surface2);
+  color: var(--ink2);
+  border-radius: 50px;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.timeBadge {
+  background: var(--surface2);
+  color: var(--ink2);
+  border-radius: 50px;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.attemptBtn {
+  background: var(--pulse);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: "DM Sans", sans-serif;
+  transition: opacity 0.15s, transform 0.15s;
+  white-space: nowrap;
+}
+.attemptBtn:hover { opacity: 0.9; transform: scale(1.03); }
+
+.doneTag {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink2);
+  background: var(--surface2);
+  border-radius: 10px;
+  padding: 10px 16px;
+  white-space: nowrap;
+}
+
+/* EMPTY */
+.empty {
+  text-align: center;
+  padding: 60px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.emptyIcon { font-size: 40px; }
+.emptyTitle { font-family: "Syne", sans-serif; font-size: 20px; font-weight: 800; color: var(--ink); }
+.emptySub { font-size: 14px; color: var(--ink2); }
+
+/* MODAL */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(4px);
+}
+.modal {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 28px;
+  max-width: 640px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.modalMeta { display: flex; gap: 8px; flex-wrap: wrap; }
+.modalClose {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  width: 32px; height: 32px;
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--ink2);
+  display: flex; align-items: center; justify-content: center;
+}
+.modalTitle {
+  font-family: "Syne", sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.questionBox {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  font-size: 14px;
+  color: var(--ink);
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+.timer {
+  font-family: "Syne", sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--accent);
+  background: var(--surface2);
+  border-radius: 10px;
+  padding: 6px 14px;
+}
+.timerDanger { color: var(--pulse); animation: pulse 1s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+.startBox {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  text-align: center;
+  padding: 8px 0;
+}
+.startWarning {
+  background: rgba(255,77,109,0.08);
+  border: 1px solid rgba(255,77,109,0.2);
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--pulse);
+  width: 100%;
+}
+.startInfo { font-size: 13px; color: var(--ink2); }
+.startBtn {
+  background: var(--pulse);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 32px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: "DM Sans", sans-serif;
+  transition: opacity 0.15s, transform 0.15s;
+}
+.startBtn:hover { opacity: 0.9; transform: scale(1.02); }
+
+.answerBox {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 14px;
+  color: var(--ink);
+  font-family: "DM Sans", sans-serif;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.2s;
+  width: 100%;
+}
+.answerBox:focus { border-color: var(--accent); }
+
+.submitBtn {
+  background: var(--pulse);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 13px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: "DM Sans", sans-serif;
+  transition: opacity 0.2s;
+  width: 100%;
+}
+.submitBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.resultBox {
+  border-radius: 14px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+.resultPass { background: rgba(0,201,167,0.08); border: 1px solid rgba(0,201,167,0.2); }
+.resultFail { background: rgba(255,77,109,0.08); border: 1px solid rgba(255,77,109,0.2); }
+.resultIcon { font-size: 36px; }
+.resultTitle { font-family: "Syne", sans-serif; font-size: 20px; font-weight: 800; color: var(--ink); }
+.resultFeedback { font-size: 14px; color: var(--ink2); line-height: 1.6; }
+.repGain {
+  background: rgba(0,201,167,0.12);
+  color: #00C9A7;
+  border-radius: 50px;
+  padding: 4px 16px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.doneBtn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 28px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  font-family: "DM Sans", sans-serif;
+  margin-top: 4px;
+}
+
+@media (max-width: 600px) {
+  .card { flex-direction: column; align-items: flex-start; }
+  .cardRight { width: 100%; }
+  .attemptBtn { width: 100%; }
+}
