@@ -7,39 +7,31 @@
   align-items: center;
 }
 
-/* GREETING */
 .greeting {
   text-align: center;
-  margin-bottom: 56px;
+  margin-bottom: 24px;
 }
-
 .greetingBadge {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  background: rgba(255, 77, 109, 0.12);
+  background: rgba(255,77,109,0.12);
   color: var(--pulse);
   font-size: 12px;
   font-weight: 600;
   border-radius: 50px;
   padding: 5px 14px;
   margin-bottom: 20px;
-  border: 1px solid rgba(255, 77, 109, 0.2);
+  border: 1px solid rgba(255,77,109,0.2);
 }
-
 .pulseDot {
-  width: 7px;
-  height: 7px;
+  width: 7px; height: 7px;
   border-radius: 50%;
   background: var(--pulse);
   animation: blink 1.4s ease-in-out infinite;
   display: inline-block;
 }
-
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
-}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
 .greeting h1 {
   font-family: "Syne", sans-serif;
@@ -50,18 +42,26 @@
   margin-bottom: 10px;
   line-height: 1.1;
 }
+.greeting h1 em { color: var(--pulse); font-style: normal; }
+.greeting p { font-size: 17px; color: var(--ink2); }
 
-.greeting h1 em {
-  color: var(--pulse);
-  font-style: normal;
+.statsRow {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.statPill {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 50px;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
 }
 
-.greeting p {
-  font-size: 17px;
-  color: var(--ink2);
-}
-
-/* CARDS */
 .cards {
   display: flex;
   flex-direction: column;
@@ -84,7 +84,6 @@
   position: relative;
   overflow: hidden;
 }
-
 .card::before {
   content: "";
   position: absolute;
@@ -92,28 +91,17 @@
   border-radius: 20px;
   opacity: 0;
   transition: opacity 0.2s;
-  background: rgba(155, 127, 212, 0.04);
+  background: rgba(155,127,212,0.04);
 }
-
-.card:not(.cardDisabled):hover {
+.card:hover {
   transform: translateY(-3px);
   box-shadow: var(--shadow);
-  border-color: rgba(155, 127, 212, 0.35);
+  border-color: rgba(155,127,212,0.35);
 }
+.card:hover::before { opacity: 1; }
 
-.card:not(.cardDisabled):hover::before {
-  opacity: 1;
-}
-
-.cardDisabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-/* ICON */
 .cardIcon {
-  width: 64px;
-  height: 64px;
+  width: 64px; height: 64px;
   border-radius: 18px;
   display: flex;
   align-items: center;
@@ -121,22 +109,12 @@
   font-size: 28px;
   flex-shrink: 0;
 }
+.iconCommunity { background: rgba(255,77,109,0.12); }
+.iconAi { background: rgba(155,127,212,0.12); color: var(--accent); font-size: 24px; }
+.iconChallenge { background: rgba(255,193,7,0.12); }
+.iconLeaderboard { background: rgba(0,201,167,0.12); }
 
-.iconCommunity {
-  background: rgba(255, 77, 109, 0.12);
-}
-
-.iconAi {
-  background: rgba(155, 127, 212, 0.12);
-  color: var(--accent);
-  font-size: 24px;
-}
-
-/* CONTENT */
-.cardContent {
-  flex: 1;
-}
-
+.cardContent { flex: 1; }
 .cardTitle {
   font-family: "Syne", sans-serif;
   font-size: 22px;
@@ -145,17 +123,13 @@
   letter-spacing: -0.5px;
   margin-bottom: 8px;
 }
-
 .cardTitleRow {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-bottom: 8px;
 }
-
-.cardTitleRow .cardTitle {
-  margin-bottom: 0;
-}
+.cardTitleRow .cardTitle { margin-bottom: 0; }
 
 .badge {
   background: var(--tag-bg);
@@ -165,8 +139,9 @@
   border-radius: 50px;
   padding: 3px 10px;
   font-family: "DM Sans", sans-serif;
-  letter-spacing: 0.3px;
 }
+.badgeLive { background: rgba(0,201,167,0.12); color: #00C9A7; }
+.badgeNew { background: rgba(255,193,7,0.12); color: #FFC107; }
 
 .cardDesc {
   font-size: 14px;
@@ -175,7 +150,6 @@
   margin-bottom: 14px;
   max-width: 520px;
 }
-
 .cardStats {
   display: flex;
   gap: 6px;
@@ -183,30 +157,16 @@
   color: var(--ink2);
   flex-wrap: wrap;
 }
+.statGreen { color: #00C9A7; font-weight: 600; }
 
-.statGreen {
-  color: #00C9A7;
-  font-weight: 600;
-}
-
-/* ARROW */
 .cardArrow {
   font-size: 22px;
   color: var(--accent);
   flex-shrink: 0;
   transition: transform 0.2s;
 }
+.card:hover .cardArrow { transform: translateX(4px); }
 
-.card:not(.cardDisabled):hover .cardArrow {
-  transform: translateX(4px);
-}
-
-.arrowMuted {
-  color: var(--ink2);
-  opacity: 0.4;
-}
-
-/* FOOT NOTE */
 .footNote {
   margin-top: 40px;
   font-size: 13px;
@@ -215,27 +175,8 @@
 }
 
 @media (max-width: 600px) {
-  .main {
-    padding: 48px 20px;
-  }
-
-  .greeting h1 {
-    font-size: 34px;
-  }
-
-  .card {
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 24px;
-    gap: 16px;
-  }
-
-  .cardArrow {
-    display: none;
-  }
-}
-
-.badgeLive {
-  background: rgba(0, 201, 167, 0.12);
-  color: #00C9A7;
+  .main { padding: 48px 20px; }
+  .greeting h1 { font-size: 34px; }
+  .card { flex-direction: column; align-items: flex-start; padding: 24px; gap: 16px; }
+  .cardArrow { display: none; }
 }
