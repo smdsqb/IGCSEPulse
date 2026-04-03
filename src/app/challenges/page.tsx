@@ -120,15 +120,26 @@ export default function ChallengePage() {
     setSubmitting(true);
     setTimerActive(false);
 
-    // Score based on keyword matching
+    // Flexible keyword matching — checks each word in the keyword phrase
     const answerLower = answer.toLowerCase();
-    const matched = activeChallenge.keywords.filter(kw => answerLower.includes(kw.toLowerCase()));
+    const matched = activeChallenge.keywords.filter(kw => {
+      const kwLower = kw.toLowerCase();
+      // Direct match
+      if (answerLower.includes(kwLower)) return true;
+      // Match if most words in the keyword phrase appear in the answer
+      const words = kwLower.split(" ").filter(w => w.length > 3);
+      if (words.length === 0) return false;
+      const wordsFound = words.filter(w => answerLower.includes(w));
+      return wordsFound.length >= Math.ceil(words.length * 0.6);
+    });
+
     const score = Math.round((matched.length / activeChallenge.keywords.length) * activeChallenge.marks);
-    const passed = score >= Math.ceil(activeChallenge.marks * 0.5);
+    // Pass if they matched at least 1 keyword (not 50% of marks)
+    const passed = matched.length >= 1;
 
     const feedback = passed
-      ? `Great job! You matched ${matched.length}/${activeChallenge.keywords.length} key points. Score: ${score}/${activeChallenge.marks}`
-      : `You matched ${matched.length}/${activeChallenge.keywords.length} key points. Score: ${score}/${activeChallenge.marks}. Keep practising!`;
+      ? `Great job! You covered ${matched.length}/${activeChallenge.keywords.length} key points. Score: ${score}/${activeChallenge.marks}`
+      : `You didn't cover enough key points (${matched.length}/${activeChallenge.keywords.length}). Score: ${score}/${activeChallenge.marks}. Keep practising!`;
 
     // Save submission
     await addDoc(collection(db, "challenge_submissions"), {
