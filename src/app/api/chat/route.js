@@ -42,7 +42,7 @@ Rules:
 - You have access to the conversation history. Maintain context across messages.
 - After your answer, always add these three things on separate lines at the very end:
   CONFIDENCE: [High/Medium/Low] - one word only
-  RELATED_PP: [e.g. "Oct/Nov 2022 Paper 2 Q3" or "none"] - one past paper reference or none
+  RELATED_PP: [ONLY include this line if you are certain this exact question or a very similar one appeared in an official Cambridge IGCSE past paper. Format exactly as "o/n 2023 p2 q4" or "m/j 2022 p1 q7". If you are not certain, write "none".]
   SUGGESTIONS: [three short follow-up questions separated by | character]`;
 
     const userContent = imageBase64
@@ -89,9 +89,9 @@ Rules:
     const suggestionsMatch = fullText.match(/SUGGESTIONS:\s*(.+?)(?:\n|$)/i);
 
     const confidence  = confidenceMatch?.[1] ?? null;
-    const relatedPp   = relatedPpMatch?.[1]?.trim() === 'none' ? null : relatedPpMatch?.[1]?.trim() ?? null;
+    const relatedPpRaw = relatedPpMatch?.[1]?.trim() ?? 'none';
+    const relatedPp = (relatedPpRaw === 'none' || relatedPpRaw === '' || relatedPpRaw.toLowerCase().includes('none')) ? null : relatedPpRaw;
     const suggestions = suggestionsMatch?.[1]?.split('|').map(s => s.trim()).filter(Boolean) ?? [];
-
     // Strip metadata lines from the answer shown to the user
     const answer = fullText
       .replace(/CONFIDENCE:.*$/im, '')
