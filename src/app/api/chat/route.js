@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import business from '@/data/business_syllabus.json';
 import math from '@/data/math_syllabus.json';
 import physics from '@/data/physics_syllabus.json';
@@ -25,7 +25,7 @@ function getAdminDb() {
 
 export async function POST(request) {
   try {
-    const { question, subject, marks, userId, sessionId, history = [] } = await request.json();
+    const { question, subject, marks, userId, sessionId, history = [], imageBase64, imageType } = await request.json();
 
     const data = syllabuses[subject];
     if (!data) return NextResponse.json({ reply: 'Subject not found.' });
@@ -39,12 +39,23 @@ Rules:
 - For ${marks || 'any'} marks, follow the Cambridge marking scheme format.
 - For 6+ marks, always include evaluation/judgement.
 - Be concise, student-friendly, and examiner-accurate.
-- You have access to the conversation history. Maintain context across messages.`;
+- You have access to the conversation history. Maintain context across messages.
+- After your answer, always add these three things on separate lines at the very end:
+  CONFIDENCE: [High/Medium/Low] - one word only
+  RELATED_PP: [e.g. "Oct/Nov 2022 Paper 2 Q3" or "none"] - one past paper reference or none
+  SUGGESTIONS: [three short follow-up questions separated by | character]`;
+
+    const userContent = imageBase64
+      ? [
+          { type: 'text', text: question },
+          { type: 'image_url', image_url: { url: `data:${imageType};base64,${imageBase64}` } },
+        ]
+      : question;
 
     const chatMessages = [
       { role: 'system', content: systemPrompt },
       ...history.slice(-6),
-      { role: 'user', content: question },
+      { role: 'user', content: userContent },
     ];
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -55,7 +66,7 @@ Rules:
       },
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
-        max_tokens: 1000,
+        max_tokens: 1200,
         temperature: 0.3,
         messages: chatMessages,
       }),
@@ -70,15 +81,30 @@ Rules:
     const result = await response.json();
     if (!result.choices?.[0]) return NextResponse.json({ reply: 'Sorry, invalid response. Please try again.' });
 
-    const answer = result.choices[0].message.content;
+    const fullText = result.choices[0].message.content;
+
+    // Parse out metadata from end of response
+    const confidenceMatch = fullText.match(/CONFIDENCE:\s*(High|Medium|Low)/i);
+    const relatedPpMatch  = fullText.match(/RELATED_PP:\s*(.+?)(?:\n|$)/i);
+    const suggestionsMatch = fullText.match(/SUGGESTIONS:\s*(.+?)(?:\n|$)/i);
+
+    const confidence  = confidenceMatch?.[1] ?? null;
+    const relatedPp   = relatedPpMatch?.[1]?.trim() === 'none' ? null : relatedPpMatch?.[1]?.trim() ?? null;
+    const suggestions = suggestionsMatch?.[1]?.split('|').map(s => s.trim()).filter(Boolean) ?? [];
+
+    // Strip metadata lines from the answer shown to the user
+    const answer = fullText
+      .replace(/CONFIDENCE:.*$/im, '')
+      .replace(/RELATED_PP:.*$/im, '')
+      .replace(/SUGGESTIONS:.*$/im, '')
+      .trim();
 
     try {
       if (userId && userId !== 'anonymous' && sessionId) {
         const adminDb = getAdminDb();
-        const userRef = adminDb.collection('users').doc(userId);
-        await userRef.set({
-          aiQuestionCount: getFirestore.FieldValue?.increment(1) ?? 1,
-          rep: getFirestore.FieldValue?.increment(2) ?? 2,
+        await adminDb.collection('users').doc(userId).set({
+          aiQuestionCount: FieldValue.increment(1),
+          rep: FieldValue.increment(2),
           lastActivity: new Date(),
         }, { merge: true });
 
@@ -91,7 +117,7 @@ Rules:
       console.error('Firebase update error:', dbError);
     }
 
-    return NextResponse.json({ reply: answer, code: data.code });
+    return NextResponse.json({ reply: answer, code: data.code, confidence, relatedPp, suggestions });
   } catch (error) {
     console.error('API Error:', error);
     return NextResponse.json({ reply: `Error: ${error.message || 'Please try again.'}` }, { status: 500 });
