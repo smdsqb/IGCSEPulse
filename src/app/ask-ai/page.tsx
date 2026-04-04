@@ -163,7 +163,8 @@ async function extractFileText(file: File): Promise<string> {
   catch { return `[File: ${file.name} — could not extract text]`; }
 }
 
-// ── Export chat as text file ─────────────────────────────────────────────────function exportChat(messages: Message[], subject: string) {
+// ── Export chat as text file ─────────────────────────────────────────────────
+function exportChat(messages: Message[], subject: string) {
   const lines: string[] = [];
   lines.push("╔══════════════════════════════════════════════════════════╗");
   lines.push(`  IGCSE Pulse — ${subject} Chat Export`);
