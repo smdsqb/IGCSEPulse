@@ -12,28 +12,26 @@ function chunkText(text, size = 400) {
 }
 
 async function getEmbedding(text) {
-  const res = await fetch(
-  'https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2',
-  {
+  const res = await fetch('https://api.cohere.com/v1/embed', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
+      'Authorization': `Bearer ${process.env.COHERE_API_KEY}`,
     },
     body: JSON.stringify({
-      inputs: text,
-      options: { wait_for_model: true, use_cache: true },
+      texts: [text],
+      model: 'embed-english-light-v3.0',
+      input_type: 'search_document',
     }),
-  }
-);
+  });
 
   if (!res.ok) {
     const errBody = await res.text();
-    throw new Error(`HuggingFace embedding failed (${res.status}): ${errBody}`);
+    throw new Error(`Cohere embedding failed (${res.status}): ${errBody}`);
   }
 
   const data = await res.json();
-  return Array.isArray(data[0]) ? data[0] : data;
+  return data.embeddings[0];
 }
 
 export async function POST(request) {
@@ -46,8 +44,8 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Missing file or subject' }, { status: 400 });
     }
 
-    if (!process.env.HUGGINGFACE_API_KEY) {
-      return NextResponse.json({ error: 'HUGGINGFACE_API_KEY is not set' }, { status: 500 });
+    if (!process.env.COHERE_API_KEY) {
+      return NextResponse.json({ error: 'COHERE_API_KEY is not set' }, { status: 500 });
     }
     if (!process.env.PINECONE_API_KEY) {
       return NextResponse.json({ error: 'PINECONE_API_KEY is not set' }, { status: 500 });
