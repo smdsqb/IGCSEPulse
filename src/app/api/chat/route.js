@@ -24,28 +24,21 @@ function getAdminDb() {
 }
 
 // ── Get embedding for a query string ──────────────────────────────────────────
-async function getQueryEmbedding(text) {
-  if (!process.env.OPENAI_API_KEY) return null;
-
-  try {
-    const res = await fetch('https://api.openai.com/v1/embeddings', {
+async function getEmbedding(text) {
+  const res = await fetch(
+    'https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2',
+    {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
       },
-      body: JSON.stringify({
-        model: 'text-embedding-3-small',
-        input: text,
-        dimensions: 384,
-      }),
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.data?.[0]?.embedding ?? null;
-  } catch {
-    return null;
-  }
+      body: JSON.stringify({ inputs: text, options: { wait_for_model: true } }),
+    }
+  );
+  const data = await res.json();
+  // HF returns either [0.1, 0.2, ...] or [[0.1, 0.2, ...]]
+  return Array.isArray(data[0]) ? data[0] : data;
 }
 
 // ── Query Pinecone for relevant past paper chunks ─────────────────────────────
