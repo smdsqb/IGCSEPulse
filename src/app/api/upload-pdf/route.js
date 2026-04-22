@@ -13,16 +13,19 @@ function chunkText(text, size = 400) {
 
 async function getEmbedding(text) {
   const res = await fetch(
-    'https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2',
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
-      },
-      body: JSON.stringify({ inputs: text, options: { wait_for_model: true } }),
-    }
-  );
+  'https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2',
+  {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
+    },
+    body: JSON.stringify({
+      inputs: text,
+      options: { wait_for_model: true, use_cache: true },
+    }),
+  }
+);
 
   if (!res.ok) {
     const errBody = await res.text();
