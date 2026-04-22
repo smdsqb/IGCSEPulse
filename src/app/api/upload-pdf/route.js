@@ -12,18 +12,21 @@ function chunkText(text, size = 400) {
 }
 
 async function getEmbedding(text) {
-  const res = await fetch('https://api.openai.com/v1/embeddings', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: 'text-embedding-3-small',
-      input: text,
-      dimensions: 384,
-    }),
-  });
+  const res = await fetch(
+    'https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
+      },
+      body: JSON.stringify({ inputs: text, options: { wait_for_model: true } }),
+    }
+  );
+  const data = await res.json();
+  // HF returns either [0.1, 0.2, ...] or [[0.1, 0.2, ...]]
+  return Array.isArray(data[0]) ? data[0] : data;
+}
 
   if (!res.ok) {
     const errBody = await res.text();
