@@ -24,7 +24,7 @@ function getAdminDb() {
 }
 
 // ── Get embedding for a query string ──────────────────────────────────────────
-async function getEmbedding(text) {
+async function getQueryEmbedding(text) {
   const res = await fetch(
     'https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2',
     {
