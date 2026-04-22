@@ -26,19 +26,19 @@ function getAdminDb() {
 // ── Get embedding for a query string ──────────────────────────────────────────
 async function getQueryEmbedding(text) {
   const res = await fetch(
-    'https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2',
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
-      },
-      body: JSON.stringify({ inputs: text, options: { wait_for_model: true } }),
-    }
-  );
-  const data = await res.json();
-  // HF returns either [0.1, 0.2, ...] or [[0.1, 0.2, ...]]
-  return Array.isArray(data[0]) ? data[0] : data;
+  'https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2',
+  {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
+    },
+    body: JSON.stringify({
+      inputs: text,
+      options: { wait_for_model: true, use_cache: true },
+    }),
+  }
+);
 }
 
 // ── Query Pinecone for relevant past paper chunks ─────────────────────────────
