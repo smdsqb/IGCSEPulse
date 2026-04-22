@@ -23,22 +23,31 @@ function getAdminDb() {
   return getFirestore();
 }
 
-// ── Get embedding for a query string ──────────────────────────────────────────
+// ── Cohere embedding for the user's query ─────────────────────────────────────
 async function getQueryEmbedding(text) {
-  const res = await fetch(
-  'https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2',
-  {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
-    },
-    body: JSON.stringify({
-      inputs: text,
-      options: { wait_for_model: true, use_cache: true },
-    }),
+  if (!process.env.COHERE_API_KEY) return null;
+
+  try {
+    const res = await fetch('https://api.cohere.com/v1/embed', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.COHERE_API_KEY}`,
+      },
+      body: JSON.stringify({
+        texts: [text],
+        model: 'embed-english-light-v3.0',
+        input_type: 'search_query',
+      }),
+    });
+
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    return data.embeddings[0];
+  } catch {
+    return null;
   }
-);
 }
 
 // ── Query Pinecone for relevant past paper chunks ─────────────────────────────
@@ -97,7 +106,7 @@ export async function POST(request) {
         const matches = await queryPinecone(embedding, subject);
         if (matches.length > 0) {
           const chunks = matches
-            .filter(m => m.score > 0.3) // only reasonably relevant chunks
+            .filter(m => m.score > 0.3)
             .map(m => `[Source: ${m.metadata?.source ?? 'past paper'}]\n${m.metadata?.text ?? ''}`)
             .join('\n\n');
           if (chunks) {
@@ -106,7 +115,6 @@ export async function POST(request) {
         }
       }
     } catch (ragErr) {
-      // RAG is optional — don't break the whole request if it fails
       console.error('[chat] RAG pipeline error:', ragErr.message);
     }
 
@@ -168,7 +176,7 @@ Rules:
 
     const fullText = result.choices[0].message.content;
 
-    // ── Parse metadata from end of response ───────────────────────────
+    // ── Parse metadata ─────────────────────────────────────────────────
     const confidenceMatch  = fullText.match(/CONFIDENCE:\s*(High|Medium|Low)/i);
     const relatedPpMatch   = fullText.match(/RELATED_PP:\s*(.+?)(?:\n|$)/i);
     const suggestionsMatch = fullText.match(/SUGGESTIONS:\s*(.+?)(?:\n|$)/i);
