@@ -28,17 +28,65 @@ export default function AdminPage() {
   const [msg, setMsg]               = useState("");
 
   // PDF upload state
-  const [pdfSubject, setPdfSubject]   = useState("business");
-  const [pdfFile, setPdfFile]         = useState<File | null>(null);
-  const [uploading, setUploading]     = useState(false);
-  const [uploadMsg, setUploadMsg]     = useState("");
+  const [pdfSubject, setPdfSubject]     = useState("business");
+  const [pdfFile, setPdfFile]           = useState<File | null>(null);
+  const [uploading, setUploading]       = useState(false);
+  const [uploadMsg, setUploadMsg]       = useState("");
+  const [duplicateWarning, setDuplicateWarning] = useState(false);
+  const [checkingDuplicate, setCheckingDuplicate] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Delete state
+  const [deleteSubject, setDeleteSubject] = useState("business");
+  const [deleteFilename, setDeleteFilename] = useState("");
+  const [deleting, setDeleting]           = useState(false);
+  const [deleteMsg, setDeleteMsg]         = useState("");
 
   useEffect(() => {
     if (!loading && (!user || !ADMIN_UIDS.includes(user.uid))) {
       router.push("/");
     }
   }, [user, loading, router]);
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    setPdfFile(file);
+    setDuplicateWarning(false);
+    setUploadMsg("");
+
+    if (!file) return;
+
+    // Check for duplicate
+    setCheckingDuplicate(true);
+    try {
+      const res = await fetch(`/api/check-pdf?filename=${encodeURIComponent(file.name)}&subject=${pdfSubject}`);
+      const data = await res.json();
+      if (data.exists) setDuplicateWarning(true);
+    } catch {
+      // silently ignore check errors
+    } finally {
+      setCheckingDuplicate(false);
+    }
+  }
+
+  async function handleSubjectChange(newSubject: string) {
+    setPdfSubject(newSubject);
+    setDuplicateWarning(false);
+
+    if (!pdfFile) return;
+
+    // Re-check duplicate for new subject
+    setCheckingDuplicate(true);
+    try {
+      const res = await fetch(`/api/check-pdf?filename=${encodeURIComponent(pdfFile.name)}&subject=${newSubject}`);
+      const data = await res.json();
+      if (data.exists) setDuplicateWarning(true);
+    } catch {
+      // silently ignore
+    } finally {
+      setCheckingDuplicate(false);
+    }
+  }
 
   async function handlePost() {
     if (!title.trim() || !question.trim() || !keywords.trim()) {
@@ -71,6 +119,7 @@ export default function AdminPage() {
     if (!pdfFile) { setUploadMsg("Please select a PDF first."); return; }
     setUploading(true);
     setUploadMsg("Uploading and processing PDF...");
+    setDuplicateWarning(false);
     try {
       const formData = new FormData();
       formData.append("file", pdfFile);
@@ -89,6 +138,31 @@ export default function AdminPage() {
       console.error(err);
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!deleteFilename.trim()) { setDeleteMsg("❌ Please enter a filename."); return; }
+    setDeleting(true);
+    setDeleteMsg("Deleting vectors from Pinecone...");
+    try {
+      const res = await fetch("/api/delete-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: deleteFilename.trim(), subject: deleteSubject }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setDeleteMsg(`✅ Deleted ${data.deleted} vectors for "${deleteFilename.trim()}" from Pinecone.`);
+        setDeleteFilename("");
+      } else {
+        setDeleteMsg(`❌ Error: ${data.error}`);
+      }
+    } catch (err) {
+      setDeleteMsg("❌ Delete failed. Please try again.");
+      console.error(err);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -111,15 +185,28 @@ export default function AdminPage() {
           </p>
 
           {uploadMsg && (
-            <div className={styles.msg} style={{ background: uploadMsg.startsWith("✅") ? "rgba(0,201,167,0.1)" : "rgba(255,80,80,0.1)", color: uploadMsg.startsWith("✅") ? "#00C9A7" : "#ff5050" }}>
+            <div className={styles.msg} style={{
+              background: uploadMsg.startsWith("✅") ? "rgba(0,201,167,0.1)" : "rgba(255,80,80,0.1)",
+              color: uploadMsg.startsWith("✅") ? "#00C9A7" : "#ff5050"
+            }}>
               {uploadMsg}
             </div>
+          )}
+
+          {duplicateWarning && (
+            <div className={styles.msg} style={{ background: "rgba(255,193,7,0.1)", color: "#FFC107" }}>
+              ⚠️ This file already exists in Pinecone for this subject. You can still upload to overwrite it, or delete it first using the section below.
+            </div>
+          )}
+
+          {checkingDuplicate && (
+            <div style={{ fontSize: "12px", color: "var(--ink2)" }}>Checking for duplicates...</div>
           )}
 
           <div className={styles.row}>
             <div className={styles.field}>
               <label>Subject</label>
-              <select value={pdfSubject} onChange={e => setPdfSubject(e.target.value)}>
+              <select value={pdfSubject} onChange={e => handleSubjectChange(e.target.value)}>
                 {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
@@ -129,15 +216,65 @@ export default function AdminPage() {
                 type="file"
                 accept=".pdf"
                 ref={fileRef}
-                onChange={e => setPdfFile(e.target.files?.[0] ?? null)}
+                onChange={handleFileChange}
                 style={{ padding: "8px" }}
               />
             </div>
           </div>
 
-          <button className={styles.postBtn} onClick={handlePdfUpload} disabled={uploading || !pdfFile}
-            style={{ background: "var(--accent)" }}>
-            {uploading ? "Processing..." : "Upload to AI Knowledge Base 🧠"}
+          <button
+            className={styles.postBtn}
+            onClick={handlePdfUpload}
+            disabled={uploading || !pdfFile || checkingDuplicate}
+            style={{ background: "var(--accent)" }}
+          >
+            {uploading ? "Processing..." : duplicateWarning ? "Upload Anyway 🧠" : "Upload to AI Knowledge Base 🧠"}
+          </button>
+        </div>
+
+        {/* DELETE SECTION */}
+        <div className={styles.form}>
+          <h2 style={{ fontFamily: "Syne, sans-serif", fontSize: "18px", fontWeight: 800, margin: 0 }}>
+            🗑️ Delete PDF from AI
+          </h2>
+          <p style={{ fontSize: "13px", color: "var(--ink2)", margin: 0 }}>
+            Remove a PDF's vectors from Pinecone. The filename must match exactly what was uploaded (e.g. <code>Chapter1.pdf</code>).
+          </p>
+
+          {deleteMsg && (
+            <div className={styles.msg} style={{
+              background: deleteMsg.startsWith("✅") ? "rgba(0,201,167,0.1)" : "rgba(255,80,80,0.1)",
+              color: deleteMsg.startsWith("✅") ? "#00C9A7" : "#ff5050"
+            }}>
+              {deleteMsg}
+            </div>
+          )}
+
+          <div className={styles.row}>
+            <div className={styles.field}>
+              <label>Subject</label>
+              <select value={deleteSubject} onChange={e => setDeleteSubject(e.target.value)}>
+                {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <div className={styles.field}>
+              <label>Filename (exact)</label>
+              <input
+                type="text"
+                value={deleteFilename}
+                onChange={e => setDeleteFilename(e.target.value)}
+                placeholder="e.g. Chapter1.pdf"
+              />
+            </div>
+          </div>
+
+          <button
+            className={styles.postBtn}
+            onClick={handleDelete}
+            disabled={deleting || !deleteFilename.trim()}
+            style={{ background: "rgba(255,77,109,0.85)" }}
+          >
+            {deleting ? "Deleting..." : "Delete from Pinecone 🗑️"}
           </button>
         </div>
 
