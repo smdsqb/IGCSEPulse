@@ -37,6 +37,7 @@ async function getQueryEmbedding(text) {
       body: JSON.stringify({
         model: 'text-embedding-3-small',
         input: text,
+        dimensions: 384,
       }),
     });
     if (!res.ok) return null;
