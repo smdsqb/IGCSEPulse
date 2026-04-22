@@ -23,18 +23,107 @@ function getAdminDb() {
   return getFirestore();
 }
 
+// ── Get embedding for a query string ──────────────────────────────────────────
+async function getQueryEmbedding(text) {
+  if (!process.env.OPENAI_API_KEY) return null;
+
+  try {
+    const res = await fetch('https://api.openai.com/v1/embeddings', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'text-embedding-3-small',
+        input: text,
+      }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.data?.[0]?.embedding ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// ── Query Pinecone for relevant past paper chunks ─────────────────────────────
+async function queryPinecone(embedding, subject, topK = 5) {
+  if (!process.env.PINECONE_HOST || !process.env.PINECONE_API_KEY) return [];
+
+  try {
+    const res = await fetch(`${process.env.PINECONE_HOST}/query`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Api-Key': process.env.PINECONE_API_KEY,
+      },
+      body: JSON.stringify({
+        vector: embedding,
+        topK,
+        includeMetadata: true,
+        filter: { subject: { $eq: subject } },
+      }),
+    });
+
+    if (!res.ok) {
+      console.error('[chat] Pinecone query failed:', res.status, await res.text());
+      return [];
+    }
+
+    const data = await res.json();
+    return data.matches ?? [];
+  } catch (err) {
+    console.error('[chat] Pinecone query error:', err.message);
+    return [];
+  }
+}
+
 export async function POST(request) {
   try {
-    const { question, subject, marks, userId, sessionId, history = [], imageBase64, imageType } = await request.json();
+    const {
+      question,
+      subject,
+      marks,
+      userId,
+      sessionId,
+      history = [],
+      imageBase64,
+      imageType,
+    } = await request.json();
 
     const data = syllabuses[subject];
     if (!data) return NextResponse.json({ reply: 'Subject not found.' });
 
+    // ── RAG: fetch relevant past paper context ─────────────────────────
+    let ragContext = '';
+    try {
+      const embedding = await getQueryEmbedding(question);
+      if (embedding) {
+        const matches = await queryPinecone(embedding, subject);
+        if (matches.length > 0) {
+          const chunks = matches
+            .filter(m => m.score > 0.3) // only reasonably relevant chunks
+            .map(m => `[Source: ${m.metadata?.source ?? 'past paper'}]\n${m.metadata?.text ?? ''}`)
+            .join('\n\n');
+          if (chunks) {
+            ragContext = `\n\nRELEVANT PAST PAPER / MARK SCHEME CONTENT:\n${chunks}\n`;
+          }
+        }
+      }
+    } catch (ragErr) {
+      // RAG is optional — don't break the whole request if it fails
+      console.error('[chat] RAG pipeline error:', ragErr.message);
+    }
+
+    // ── Build system prompt ────────────────────────────────────────────
     const systemPrompt = `You are a Cambridge IGCSE ${data.name} (${data.code}) examiner and tutor.
 Syllabus content: ${data.syllabus.content}
 Topics: ${data.syllabus.topics?.map((t) => t.topicName).join(', ') || ''}
+${ragContext}
 Rules:
 - Answer based on the Cambridge IGCSE syllabus and any file content the student shares.
+- If RELEVANT PAST PAPER / MARK SCHEME CONTENT is provided above, use it to give more accurate, specific answers and reference it where appropriate.
 - When the user uploads an image that appears to be handwritten work, treat it as a student answer submission. Read the handwriting carefully, identify what the student wrote, mark it against the Cambridge mark scheme for ${data.name}, state how many marks it would receive and why, identify missing key words or points, and provide a model answer.
 - When the user uploads any other file or image, read its content carefully and help them with it in the context of IGCSE ${data.name}.
 - For ${marks || 'any'} marks, follow the Cambridge marking scheme format.
@@ -59,6 +148,7 @@ Rules:
       { role: 'user', content: userContent },
     ];
 
+    // ── Call Groq ──────────────────────────────────────────────────────
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -84,22 +174,23 @@ Rules:
 
     const fullText = result.choices[0].message.content;
 
-    // Parse out metadata from end of response
-    const confidenceMatch = fullText.match(/CONFIDENCE:\s*(High|Medium|Low)/i);
-    const relatedPpMatch  = fullText.match(/RELATED_PP:\s*(.+?)(?:\n|$)/i);
+    // ── Parse metadata from end of response ───────────────────────────
+    const confidenceMatch  = fullText.match(/CONFIDENCE:\s*(High|Medium|Low)/i);
+    const relatedPpMatch   = fullText.match(/RELATED_PP:\s*(.+?)(?:\n|$)/i);
     const suggestionsMatch = fullText.match(/SUGGESTIONS:\s*(.+?)(?:\n|$)/i);
 
-    const confidence  = confidenceMatch?.[1] ?? null;
+    const confidence   = confidenceMatch?.[1] ?? null;
     const relatedPpRaw = relatedPpMatch?.[1]?.trim() ?? 'none';
-    const relatedPp = (relatedPpRaw === 'none' || relatedPpRaw === '' || relatedPpRaw.toLowerCase().includes('none')) ? null : relatedPpRaw;
-    const suggestions = suggestionsMatch?.[1]?.split('|').map(s => s.trim()).filter(Boolean) ?? [];
-    // Strip metadata lines from the answer shown to the user
+    const relatedPp    = (relatedPpRaw === 'none' || relatedPpRaw === '' || relatedPpRaw.toLowerCase().includes('none')) ? null : relatedPpRaw;
+    const suggestions  = suggestionsMatch?.[1]?.split('|').map(s => s.trim()).filter(Boolean) ?? [];
+
     const answer = fullText
       .replace(/CONFIDENCE:.*$/im, '')
       .replace(/RELATED_PP:.*$/im, '')
       .replace(/SUGGESTIONS:.*$/im, '')
       .trim();
 
+    // ── Update Firebase ────────────────────────────────────────────────
     try {
       if (userId && userId !== 'anonymous' && sessionId) {
         const adminDb = getAdminDb();
@@ -119,6 +210,7 @@ Rules:
     }
 
     return NextResponse.json({ reply: answer, code: data.code, confidence, relatedPp, suggestions });
+
   } catch (error) {
     console.error('API Error:', error);
     return NextResponse.json({ reply: `Error: ${error.message || 'Please try again.'}` }, { status: 500 });
