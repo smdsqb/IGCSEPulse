@@ -21,7 +21,7 @@ export async function POST(request) {
     const candidateIds = Array.from({ length: 500 }, (_, i) => `${prefix}-${i}`);
 
     // Fetch in batches of 100 (Pinecone limit)
-    const existingIds: string[] = [];
+    const existingIds = [];
     const FETCH_BATCH = 100;
 
     for (let b = 0; b < candidateIds.length; b += FETCH_BATCH) {
