@@ -7,10 +7,7 @@
   align-items: center;
 }
 
-.greeting {
-  text-align: center;
-  margin-bottom: 24px;
-}
+.greeting { text-align: center; margin-bottom: 24px; }
 .greetingBadge {
   display: inline-flex;
   align-items: center;
@@ -41,6 +38,8 @@
   color: var(--ink);
   margin-bottom: 10px;
   line-height: 1.1;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 .greeting h1 em { color: var(--pulse); font-style: normal; }
 .greeting p { font-size: 17px; color: var(--ink2); }
@@ -62,12 +61,7 @@
   color: var(--ink);
 }
 
-.cards {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  width: 100%;
-}
+.cards { display: flex; flex-direction: column; gap: 18px; width: 100%; }
 
 .card {
   display: flex;
@@ -76,7 +70,7 @@
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 20px;
-  padding: 32px 36px;
+  padding: 28px 32px;
   text-decoration: none;
   color: inherit;
   transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
@@ -93,90 +87,60 @@
   transition: opacity 0.2s;
   background: rgba(155,127,212,0.04);
 }
-.card:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow);
-  border-color: rgba(155,127,212,0.35);
-}
+.card:hover { transform: translateY(-3px); box-shadow: var(--shadow); border-color: rgba(155,127,212,0.35); }
 .card:hover::before { opacity: 1; }
 
 .cardIcon {
-  width: 64px; height: 64px;
-  border-radius: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28px;
+  width: 56px; height: 56px;
+  border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px;
   flex-shrink: 0;
 }
 .iconCommunity { background: rgba(255,77,109,0.12); }
-.iconAi { background: rgba(155,127,212,0.12); color: var(--accent); font-size: 24px; }
+.iconAi { background: rgba(155,127,212,0.12); color: var(--accent); font-size: 20px; }
 .iconChallenge { background: rgba(255,193,7,0.12); }
 .iconLeaderboard { background: rgba(0,201,167,0.12); }
 
-.cardContent { flex: 1; }
+.cardContent { flex: 1; min-width: 0; }
 .cardTitle {
   font-family: "Syne", sans-serif;
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 800;
   color: var(--ink);
   letter-spacing: -0.5px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
+  word-break: break-word;
 }
-.cardTitleRow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
-}
+.cardTitleRow { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
 .cardTitleRow .cardTitle { margin-bottom: 0; }
 
-.badge {
-  background: var(--tag-bg);
-  color: var(--tag-text);
-  font-size: 11px;
-  font-weight: 700;
-  border-radius: 50px;
-  padding: 3px 10px;
-  font-family: "DM Sans", sans-serif;
-}
+.badge { background: var(--tag-bg); color: var(--tag-text); font-size: 11px; font-weight: 700; border-radius: 50px; padding: 3px 10px; font-family: "DM Sans", sans-serif; }
 .badgeLive { background: rgba(0,201,167,0.12); color: #00C9A7; }
 .badgeNew { background: rgba(255,193,7,0.12); color: #FFC107; }
 
-.cardDesc {
-  font-size: 14px;
-  color: var(--ink2);
-  line-height: 1.6;
-  margin-bottom: 14px;
-  max-width: 520px;
-}
-.cardStats {
-  display: flex;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--ink2);
-  flex-wrap: wrap;
-}
+.cardDesc { font-size: 13px; color: var(--ink2); line-height: 1.6; margin-bottom: 12px; max-width: 520px; }
+.cardStats { display: flex; gap: 6px; font-size: 12px; color: var(--ink2); flex-wrap: wrap; }
 .statGreen { color: #00C9A7; font-weight: 600; }
 
-.cardArrow {
-  font-size: 22px;
-  color: var(--accent);
-  flex-shrink: 0;
-  transition: transform 0.2s;
-}
+.cardArrow { font-size: 20px; color: var(--accent); flex-shrink: 0; transition: transform 0.2s; }
 .card:hover .cardArrow { transform: translateX(4px); }
 
-.footNote {
-  margin-top: 40px;
-  font-size: 13px;
-  color: var(--ink2);
-  opacity: 0.6;
+.footNote { margin-top: 40px; font-size: 13px; color: var(--ink2); opacity: 0.6; }
+
+/* TABLET */
+@media (max-width: 1024px) {
+  .main { padding: 48px 28px; }
+  .greeting h1 { font-size: 36px; letter-spacing: -1px; }
+  .greeting p { font-size: 15px; }
 }
 
+/* MOBILE */
 @media (max-width: 600px) {
-  .main { padding: 48px 20px; }
-  .greeting h1 { font-size: 34px; }
-  .card { flex-direction: column; align-items: flex-start; padding: 24px; gap: 16px; }
+  .main { padding: 36px 16px; }
+  .greeting h1 { font-size: 28px; letter-spacing: -0.5px; }
+  .greeting p { font-size: 14px; }
+  .card { flex-direction: column; align-items: flex-start; padding: 20px; gap: 14px; }
   .cardArrow { display: none; }
+  .cardTitle { font-size: 17px; }
 }
