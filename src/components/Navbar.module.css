@@ -199,12 +199,54 @@
 .hLine3Open { transform: translateY(-7px) rotate(-45deg); }
 
 /* MOBILE MENU */
-.mobileMenu { display: none; flex-direction: column; background: var(--card); border-bottom: 1px solid var(--border); padding: 10px 0; position: relative; z-index: 99; }
-.mobileLink { padding: 13px 22px; font-size: 14px; font-weight: 600; color: var(--ink); text-decoration: none; border: none; background: none; text-align: left; cursor: pointer; font-family: "DM Sans", sans-serif; transition: background 0.15s; display: block; width: 100%; }
-.mobileLink:hover { background: var(--surface2); }
+.mobileMenu {
+  display: none;
+  flex-direction: column;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  z-index: 99;
+  /* Smooth slide-down */
+  animation: slideDown 0.2s ease;
+}
+@keyframes slideDown { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+
+.mobileLink {
+  padding: 15px 22px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font-family: "DM Sans", sans-serif;
+  transition: background 0.15s;
+  display: block;
+  width: 100%;
+  /* Better touch target */
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+}
+.mobileLink:last-child { border-bottom: none; }
+.mobileLink:hover, .mobileLink:active { background: var(--surface2); }
 .mobileLinkAi { color: var(--pulse); }
 .mobileLinkLogout { color: var(--ink2); }
-.mobileLinkCta { margin: 6px 22px; background: var(--pulse); color: #fff !important; border-radius: 10px; text-align: center; padding: 11px 22px; width: calc(100% - 44px); }
+.mobileLinkCta {
+  margin: 10px 16px 14px;
+  background: var(--pulse);
+  color: #fff !important;
+  border-radius: 12px;
+  text-align: center;
+  justify-content: center;
+  padding: 14px 22px;
+  width: calc(100% - 32px);
+  border-bottom: none !important;
+  border-radius: 12px;
+}
 
 /* TABLET (1024px and below) */
 @media (max-width: 1024px) {
