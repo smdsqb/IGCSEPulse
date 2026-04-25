@@ -11,6 +11,7 @@
   "dependencies": {
     "@pinecone-database/pinecone": "^3.0.0",
     "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
     "clsx": "^2.1.0",
     "firebase": "^10.8.0",
     "firebase-admin": "^12.0.0",
