@@ -51,7 +51,7 @@ async function getAllEmbeddings(chunks) {
   return allEmbeddings;
 }
 
-// ── text extraction: unpdf → Mistral OCR fallback ────────────────────────────
+// ── text extraction: unpdf → Mistral OCR API fallback ────────────────────────
 
 async function extractTextFromPdf(uint8Array) {
   // Step 1: unpdf for text-layer PDFs
@@ -66,54 +66,45 @@ async function extractTextFromPdf(uint8Array) {
     console.log('[upload-pdf] unpdf failed:', err.message);
   }
 
-  // Step 2: scanned/image PDF — Mistral vision OCR
-  console.log('[upload-pdf] Falling back to Mistral OCR...');
+  // Step 2: use the dedicated Mistral OCR API (not chat completions)
+  console.log('[upload-pdf] Falling back to Mistral OCR API...');
   const mistralKey = process.env.MISTRAL_API_KEY;
-  if (!mistralKey) throw new Error('No text layer found and MISTRAL_API_KEY is not set — cannot OCR this PDF.');
+  if (!mistralKey) throw new Error('No text layer found and MISTRAL_API_KEY is not set.');
 
   const base64Pdf = uint8ToBase64(uint8Array);
 
-  const mistralRes = await fetch('https://api.mistral.ai/v1/chat/completions', {
+  const mistralRes = await fetch('https://api.mistral.ai/v1/ocr', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${mistralKey}`,
     },
     body: JSON.stringify({
-      model: 'mistral-small-latest',
-      max_tokens: 8000,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'document_url',
-              document_url: `data:application/pdf;base64,${base64Pdf}`,
-            },
-            {
-              type: 'text',
-              text: 'This is a Cambridge IGCSE past paper, mark scheme, or textbook chapter. Extract ALL text content preserving the structure as much as possible. For tables, format each row on a new line with cells separated by " | ". For financial data, preserve all numbers. Include every word, number, and label. Do not summarise anything.',
-            },
-          ],
-        },
-      ],
+      model: 'mistral-ocr-latest',
+      document: {
+        type: 'document_url',
+        document_url: `data:application/pdf;base64,${base64Pdf}`,
+      },
     }),
   });
 
   if (!mistralRes.ok) {
     const errText = await mistralRes.text();
-    throw new Error(`Mistral OCR failed (${mistralRes.status}): ${errText}`);
+    throw new Error(`Mistral OCR API failed (${mistralRes.status}): ${errText}`);
   }
 
   const mistralData = await mistralRes.json();
-  const extracted = mistralData.choices?.[0]?.message?.content;
 
-  if (!extracted || extracted.trim().length < 50) {
-    throw new Error('Mistral returned no usable text from this PDF.');
+  // Response is { pages: [{ index, markdown, ... }, ...] }
+  const pages = mistralData.pages ?? [];
+  const fullText = pages.map(p => p.markdown ?? '').join('\n\n').trim();
+
+  if (!fullText || fullText.length < 50) {
+    throw new Error('Mistral OCR returned no usable text from this PDF.');
   }
 
-  console.log('[upload-pdf] Mistral OCR succeeded, length:', extracted.trim().length);
-  return extracted.trim();
+  console.log('[upload-pdf] Mistral OCR API succeeded, length:', fullText.length);
+  return fullText;
 }
 
 // ── route handler ─────────────────────────────────────────────────────────────
@@ -141,7 +132,7 @@ export async function POST(request) {
     const arrayBuffer = await file.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
 
-    // 1 — Extract text (unpdf → Mistral OCR fallback)
+    // 1 — Extract text (unpdf → Mistral OCR API fallback)
     let text;
     try {
       text = await extractTextFromPdf(uint8Array);
