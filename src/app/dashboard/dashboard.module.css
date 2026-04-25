@@ -97,10 +97,12 @@
   font-size: 24px;
   flex-shrink: 0;
 }
-.iconCommunity { background: rgba(255,77,109,0.12); }
-.iconAi { background: rgba(155,127,212,0.12); color: var(--accent); font-size: 20px; }
-.iconChallenge { background: rgba(255,193,7,0.12); }
-.iconLeaderboard { background: rgba(0,201,167,0.12); }
+.iconCommunity  { background: rgba(255,77,109,0.12); }
+.iconAi         { background: rgba(155,127,212,0.12); color: var(--accent); font-size: 20px; }
+.iconSubjects   { background: rgba(59,130,246,0.12); }
+.iconResources  { background: rgba(249,115,22,0.12); }
+.iconChallenge  { background: rgba(255,193,7,0.12); }
+.iconLeaderboard{ background: rgba(0,201,167,0.12); }
 
 .cardContent { flex: 1; min-width: 0; }
 .cardTitle {
@@ -143,4 +145,5 @@
   .card { flex-direction: column; align-items: flex-start; padding: 20px; gap: 14px; }
   .cardArrow { display: none; }
   .cardTitle { font-size: 17px; }
+  .cardDesc { margin-bottom: 8px; }
 }
