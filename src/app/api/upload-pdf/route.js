@@ -2,15 +2,6 @@ import { NextResponse } from 'next/server';
 
 export const maxDuration = 60;
 
-// ── Increase body size limit to 20MB for large PDFs ──────────────────────────
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '20mb',
-    },
-  },
-};
-
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 function uint8ToBase64(uint8) {
