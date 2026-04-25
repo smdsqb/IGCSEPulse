@@ -79,7 +79,7 @@ export default function DashboardPage() {
             <div className={styles.cardArrow}>→</div>
           </Link>
 
-          <Link href="/subjects" className={styles.card}>
+          {/* <Link href="/subjects" className={styles.card}>
             <div className={`${styles.cardIcon} ${styles.iconSubjects}`}>📚</div>
             <div className={styles.cardContent}>
               <div className={styles.cardTitle}>Subjects</div>
@@ -90,7 +90,7 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className={styles.cardArrow}>→</div>
-          </Link>
+          </Link> */}
 
           <Link href="/resources" className={styles.card}>
             <div className={`${styles.cardIcon} ${styles.iconResources}`}>🗂️</div>
@@ -99,7 +99,7 @@ export default function DashboardPage() {
                 <div className={styles.cardTitle}>Resources</div>
                 <span className={`${styles.badge} ${styles.badgeNew}`}>New</span>
               </div>
-              <div className={styles.cardDesc}>Past papers, mark schemes, notes, and revision guides — everything in one place.</div>
+              <div className={styles.cardDesc}>Notes, books and revision guides — everything in one place.</div>
               <div className={styles.cardStats}>
                 <span>Past papers</span><span>·</span>
                 <span>Mark schemes</span><span>·</span>
