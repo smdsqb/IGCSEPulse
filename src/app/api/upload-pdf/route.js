@@ -2,6 +2,14 @@ import { NextResponse } from 'next/server';
 
 export const maxDuration = 60;
 
+// ── helpers ───────────────────────────────────────────────────────────────────
+
+function uint8ToBase64(uint8) {
+  let binary = '';
+  for (let i = 0; i < uint8.length; i++) binary += String.fromCharCode(uint8[i]);
+  return btoa(binary);
+}
+
 function chunkText(text, size = 400) {
   const words = text.split(/\s+/);
   const chunks = [];
@@ -34,6 +42,73 @@ async function getEmbedding(text) {
   return data.embeddings[0];
 }
 
+// ── text extraction: unpdf → Mistral OCR fallback ────────────────────────────
+
+async function extractTextFromPdf(uint8Array) {
+  // Step 1: unpdf for text-layer PDFs
+  try {
+    const { extractText } = await import('unpdf');
+    const { text } = await extractText(uint8Array, { mergePages: true });
+    if (text && text.trim().length > 200) {
+      console.log('[upload-pdf] unpdf succeeded, length:', text.trim().length);
+      return text.trim();
+    }
+  } catch (err) {
+    console.log('[upload-pdf] unpdf failed:', err.message);
+  }
+
+  // Step 2: scanned/image PDF — Mistral vision OCR
+  console.log('[upload-pdf] Falling back to Mistral OCR...');
+  const mistralKey = process.env.MISTRAL_API_KEY;
+  if (!mistralKey) throw new Error('No text layer found and MISTRAL_API_KEY is not set — cannot OCR this PDF.');
+
+  const base64Pdf = uint8ToBase64(uint8Array);
+
+  const mistralRes = await fetch('https://api.mistral.ai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${mistralKey}`,
+    },
+    body: JSON.stringify({
+      model: 'mistral-small-latest',
+      max_tokens: 8000,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'document_url',
+              document_url: `data:application/pdf;base64,${base64Pdf}`,
+            },
+            {
+              type: 'text',
+              text: 'This is a Cambridge IGCSE past paper, mark scheme, or textbook chapter. Extract ALL text content preserving the structure as much as possible. For tables, format each row on a new line with cells separated by " | ". For financial data, preserve all numbers. Include every word, number, and label. Do not summarise anything.',
+            },
+          ],
+        },
+      ],
+    }),
+  });
+
+  if (!mistralRes.ok) {
+    const errText = await mistralRes.text();
+    throw new Error(`Mistral OCR failed (${mistralRes.status}): ${errText}`);
+  }
+
+  const mistralData = await mistralRes.json();
+  const extracted = mistralData.choices?.[0]?.message?.content;
+
+  if (!extracted || extracted.trim().length < 50) {
+    throw new Error('Mistral returned no usable text from this PDF.');
+  }
+
+  console.log('[upload-pdf] Mistral OCR succeeded, length:', extracted.trim().length);
+  return extracted.trim();
+}
+
+// ── route handler ─────────────────────────────────────────────────────────────
+
 export async function POST(request) {
   try {
     const formData = await request.formData();
@@ -55,19 +130,18 @@ export async function POST(request) {
     }
 
     const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    const uint8Array = new Uint8Array(arrayBuffer);
 
-    let text = '';
+    // Extract text (unpdf → Mistral OCR fallback)
+    let text;
     try {
-      const pdfParse = (await import('pdf-parse')).default;
-      const pdfData = await pdfParse(buffer);
-      text = pdfData.text?.trim();
-    } catch (pdfErr) {
-      return NextResponse.json({ error: `PDF parsing failed: ${pdfErr.message}` }, { status: 400 });
+      text = await extractTextFromPdf(uint8Array);
+    } catch (err) {
+      return NextResponse.json({ error: `PDF text extraction failed: ${err.message}` }, { status: 400 });
     }
 
     if (!text || text.length < 50) {
-      return NextResponse.json({ error: 'Could not extract enough text from PDF. Make sure it is a text-based PDF, not a scanned image.' }, { status: 400 });
+      return NextResponse.json({ error: 'Could not extract enough text from PDF.' }, { status: 400 });
     }
 
     const chunks = chunkText(text);
