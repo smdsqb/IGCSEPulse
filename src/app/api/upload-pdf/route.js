@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 export const maxDuration = 60;
 
 // ── helpers ───────────────────────────────────────────────────────────────────
+
 function uint8ToBase64(uint8) {
   return Buffer.from(uint8).toString('base64');
 }
@@ -16,27 +17,39 @@ function chunkText(text, size = 400) {
   return chunks.filter(c => c.trim().length > 0);
 }
 
-async function getEmbedding(text) {
-  const res = await fetch('https://api.cohere.com/v1/embed', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.COHERE_API_KEY}`,
-    },
-    body: JSON.stringify({
-      texts: [text],
-      model: 'embed-english-light-v3.0',
-      input_type: 'search_document',
-    }),
-  });
+// ── embed ALL chunks in one Cohere call ───────────────────────────────────────
+// Cohere accepts up to 96 texts per request on the free tier
+async function getAllEmbeddings(chunks) {
+  const COHERE_BATCH = 90; // stay safely under the 96 limit
+  const allEmbeddings = [];
 
-  if (!res.ok) {
-    const errBody = await res.text();
-    throw new Error(`Cohere embedding failed (${res.status}): ${errBody}`);
+  for (let i = 0; i < chunks.length; i += COHERE_BATCH) {
+    const batch = chunks.slice(i, i + COHERE_BATCH);
+
+    const res = await fetch('https://api.cohere.com/v1/embed', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.COHERE_API_KEY}`,
+      },
+      body: JSON.stringify({
+        texts: batch,
+        model: 'embed-english-light-v3.0',
+        input_type: 'search_document',
+      }),
+    });
+
+    if (!res.ok) {
+      const errBody = await res.text();
+      throw new Error(`Cohere embedding failed (${res.status}): ${errBody}`);
+    }
+
+    const data = await res.json();
+    if (!data.embeddings) throw new Error('No embeddings returned from Cohere.');
+    allEmbeddings.push(...data.embeddings);
   }
 
-  const data = await res.json();
-  return data.embeddings[0];
+  return allEmbeddings;
 }
 
 // ── text extraction: unpdf → Mistral OCR fallback ────────────────────────────
@@ -129,7 +142,7 @@ export async function POST(request) {
     const arrayBuffer = await file.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
 
-    // Extract text (unpdf → Mistral OCR fallback)
+    // 1 — Extract text (unpdf → Mistral OCR fallback)
     let text;
     try {
       text = await extractTextFromPdf(uint8Array);
@@ -141,26 +154,29 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Could not extract enough text from PDF.' }, { status: 400 });
     }
 
+    // 2 — Chunk
     const chunks = chunkText(text);
     if (chunks.length === 0) {
       return NextResponse.json({ error: 'No usable text chunks found in PDF' }, { status: 400 });
     }
-
     console.log(`[upload-pdf] "${file.name}" → ${chunks.length} chunks`);
 
+    // 3 — Embed ALL chunks in batched Cohere calls (not one-by-one)
+    let embeddings;
+    try {
+      embeddings = await getAllEmbeddings(chunks);
+    } catch (embErr) {
+      return NextResponse.json({ error: `Embedding failed: ${embErr.message}` }, { status: 500 });
+    }
+
+    // 4 — Build vectors
     const vectors = [];
     for (let i = 0; i < chunks.length; i++) {
-      let embedding;
-      try {
-        embedding = await getEmbedding(chunks[i]);
-      } catch (embErr) {
-        return NextResponse.json({ error: `Embedding generation failed at chunk ${i}: ${embErr.message}` }, { status: 500 });
-      }
-
-      if (embedding && embedding.length === 384) {
+      const emb = embeddings[i];
+      if (emb && emb.length === 384) {
         vectors.push({
           id: `${subject}-${file.name}-${i}`.replace(/[^a-zA-Z0-9-_]/g, '-'),
-          values: embedding,
+          values: emb,
           metadata: { text: chunks[i], subject, source: file.name },
         });
       }
@@ -170,6 +186,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'No valid embeddings were generated' }, { status: 500 });
     }
 
+    // 5 — Upsert into Pinecone in batches of 100
     const BATCH_SIZE = 100;
     for (let b = 0; b < vectors.length; b += BATCH_SIZE) {
       const batch = vectors.slice(b, b + BATCH_SIZE);
