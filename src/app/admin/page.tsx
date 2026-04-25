@@ -56,7 +56,6 @@ export default function AdminPage() {
 
     if (!file) return;
 
-    // Check for duplicate
     setCheckingDuplicate(true);
     try {
       const res = await fetch(`/api/check-pdf?filename=${encodeURIComponent(file.name)}&subject=${pdfSubject}`);
@@ -75,7 +74,6 @@ export default function AdminPage() {
 
     if (!pdfFile) return;
 
-    // Re-check duplicate for new subject
     setCheckingDuplicate(true);
     try {
       const res = await fetch(`/api/check-pdf?filename=${encodeURIComponent(pdfFile.name)}&subject=${newSubject}`);
@@ -124,8 +122,32 @@ export default function AdminPage() {
       const formData = new FormData();
       formData.append("file", pdfFile);
       formData.append("subject", pdfSubject);
-      const res = await fetch("/api/upload-pdf", { method: "POST", body: formData });
-      const data = await res.json();
+
+      let res: Response;
+      try {
+        res = await fetch("/api/upload-pdf", { method: "POST", body: formData });
+      } catch (fetchErr: any) {
+        // fetch itself threw — network error, request aborted, etc.
+        setUploadMsg(`❌ Network error: ${fetchErr?.message ?? String(fetchErr)}`);
+        return;
+      }
+
+      // Show raw response if not ok and can't parse JSON
+      if (!res.ok) {
+        let body = "";
+        try { body = await res.text(); } catch {}
+        setUploadMsg(`❌ Server error ${res.status}: ${body || "(no body)"}`);
+        return;
+      }
+
+      let data: any;
+      try {
+        data = await res.json();
+      } catch (jsonErr: any) {
+        setUploadMsg(`❌ Could not parse server response: ${jsonErr?.message}`);
+        return;
+      }
+
       if (data.success) {
         setUploadMsg(`✅ ${data.filename} uploaded — ${data.chunks} chunks stored in Pinecone!`);
         setPdfFile(null);
@@ -133,9 +155,6 @@ export default function AdminPage() {
       } else {
         setUploadMsg(`❌ Error: ${data.error}`);
       }
-    } catch (err) {
-      setUploadMsg("❌ Upload failed. Please try again.");
-      console.error(err);
     } finally {
       setUploading(false);
     }
@@ -187,7 +206,8 @@ export default function AdminPage() {
           {uploadMsg && (
             <div className={styles.msg} style={{
               background: uploadMsg.startsWith("✅") ? "rgba(0,201,167,0.1)" : "rgba(255,80,80,0.1)",
-              color: uploadMsg.startsWith("✅") ? "#00C9A7" : "#ff5050"
+              color: uploadMsg.startsWith("✅") ? "#00C9A7" : "#ff5050",
+              wordBreak: "break-word",
             }}>
               {uploadMsg}
             </div>
@@ -223,7 +243,6 @@ export default function AdminPage() {
           </div>
 
           <button
-            type="button"
             className={styles.postBtn}
             onClick={handlePdfUpload}
             disabled={uploading || !pdfFile || checkingDuplicate}
@@ -270,7 +289,6 @@ export default function AdminPage() {
           </div>
 
           <button
-            type="button"
             className={styles.postBtn}
             onClick={handleDelete}
             disabled={deleting || !deleteFilename.trim()}
@@ -325,7 +343,7 @@ export default function AdminPage() {
             <input value={keywords} onChange={e => setKeywords(e.target.value)} placeholder="e.g. opportunity cost, scarcity, choice" />
             <span className={styles.hint}>Key points the AI checks for in student answers</span>
           </div>
-          <button type="button" className={styles.postBtn} onClick={handlePost} disabled={saving}>
+          <button className={styles.postBtn} onClick={handlePost} disabled={saving}>
             {saving ? "Posting..." : "Post Challenge ⚡"}
           </button>
         </div>
