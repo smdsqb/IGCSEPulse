@@ -38,6 +38,12 @@ function AboutModal({ onClose }: { onClose: () => void }) {
             <div className={styles.teamRole}>Investor & Supporter</div>
             <div className={styles.teamBio}>Another computer genius, currently doing his internship after graduating from poly. He graciously donates his wallet to cover storage and hosting costs, and swoops in like a hero whenever something catches fire.</div>
           </div>
+          <div className={styles.teamCard}>
+            <div className={styles.teamAvatar}>💼</div>
+            <div className={styles.teamName}>Caleb</div>
+            <div className={styles.teamRole}>Investor & Supporter</div>
+            <div className={styles.teamBio}>This page? The domain? Yes, he purchased it to help students have better access!</div>
+          </div>
         </div>
       </div>
     </div>
@@ -140,7 +146,6 @@ export default function Navbar() {
     setDropdownOpen(false);
   }
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -164,12 +169,10 @@ export default function Navbar() {
           IGCSE<span>Pulse</span>
         </Link>
 
-        {/* Desktop links */}
+        {/* Desktop links — trimmed: no Subjects or Resources */}
         <div className={styles.navLinks}>
           <button className={styles.navTextBtn} onClick={() => setShowAbout(true)}>About</button>
           <Link href="/dashboard">Dashboard</Link>
-          <Link href="/subjects">Subjects</Link>
-          <Link href="/resources">Resources</Link>
           <Link href="/leaderboard">Leaderboard</Link>
           <Link href="/ask-ai" className={styles.aiLink}>Ask AI ✦</Link>
           <button className={styles.navTextBtn} onClick={() => setShowFeedback(true)}>Feedback</button>
@@ -203,7 +206,6 @@ export default function Navbar() {
                     }
                   </div>
 
-                  {/* Dropdown */}
                   {dropdownOpen && (
                     <div className={styles.dropdown}>
                       <div className={styles.dropdownUser}>
@@ -251,8 +253,6 @@ export default function Navbar() {
         <div className={styles.mobileMenu}>
           <button className={styles.mobileLink} onClick={() => { setShowAbout(true); setMenuOpen(false); }}>About</button>
           <Link href="/dashboard" className={styles.mobileLink} onClick={() => setMenuOpen(false)}>Dashboard</Link>
-          <Link href="/subjects" className={styles.mobileLink} onClick={() => setMenuOpen(false)}>Subjects</Link>
-          <Link href="/resources" className={styles.mobileLink} onClick={() => setMenuOpen(false)}>Resources</Link>
           <Link href="/leaderboard" className={styles.mobileLink} onClick={() => setMenuOpen(false)}>Leaderboard</Link>
           <Link href="/ask-ai" className={`${styles.mobileLink} ${styles.mobileLinkAi}`} onClick={() => setMenuOpen(false)}>Ask AI ✦</Link>
           <button className={styles.mobileLink} onClick={() => { setShowFeedback(true); setMenuOpen(false); }}>Feedback</button>
