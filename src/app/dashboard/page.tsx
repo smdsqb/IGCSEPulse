@@ -79,6 +79,36 @@ export default function DashboardPage() {
             <div className={styles.cardArrow}>→</div>
           </Link>
 
+          <Link href="/subjects" className={styles.card}>
+            <div className={`${styles.cardIcon} ${styles.iconSubjects}`}>📚</div>
+            <div className={styles.cardContent}>
+              <div className={styles.cardTitle}>Subjects</div>
+              <div className={styles.cardDesc}>Browse all IGCSE subjects, explore syllabus breakdowns, and find topic-specific study material.</div>
+              <div className={styles.cardStats}>
+                <span>All IGCSE subjects</span><span>·</span>
+                <span className={styles.statGreen}>Syllabus mapped</span>
+              </div>
+            </div>
+            <div className={styles.cardArrow}>→</div>
+          </Link>
+
+          <Link href="/resources" className={styles.card}>
+            <div className={`${styles.cardIcon} ${styles.iconResources}`}>🗂️</div>
+            <div className={styles.cardContent}>
+              <div className={styles.cardTitleRow}>
+                <div className={styles.cardTitle}>Resources</div>
+                <span className={`${styles.badge} ${styles.badgeNew}`}>New</span>
+              </div>
+              <div className={styles.cardDesc}>Past papers, mark schemes, notes, and revision guides — everything in one place.</div>
+              <div className={styles.cardStats}>
+                <span>Past papers</span><span>·</span>
+                <span>Mark schemes</span><span>·</span>
+                <span className={styles.statGreen}>Free access</span>
+              </div>
+            </div>
+            <div className={styles.cardArrow}>→</div>
+          </Link>
+
           <Link href="/challenges" className={styles.card}>
             <div className={`${styles.cardIcon} ${styles.iconChallenge}`}>⚡</div>
             <div className={styles.cardContent}>
