@@ -223,6 +223,7 @@ export default function AdminPage() {
           </div>
 
           <button
+            type="button"
             className={styles.postBtn}
             onClick={handlePdfUpload}
             disabled={uploading || !pdfFile || checkingDuplicate}
@@ -269,6 +270,7 @@ export default function AdminPage() {
           </div>
 
           <button
+            type="button"
             className={styles.postBtn}
             onClick={handleDelete}
             disabled={deleting || !deleteFilename.trim()}
@@ -323,7 +325,7 @@ export default function AdminPage() {
             <input value={keywords} onChange={e => setKeywords(e.target.value)} placeholder="e.g. opportunity cost, scarcity, choice" />
             <span className={styles.hint}>Key points the AI checks for in student answers</span>
           </div>
-          <button className={styles.postBtn} onClick={handlePost} disabled={saving}>
+          <button type="button" className={styles.postBtn} onClick={handlePost} disabled={saving}>
             {saving ? "Posting..." : "Post Challenge ⚡"}
           </button>
         </div>
