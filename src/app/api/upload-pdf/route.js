@@ -3,11 +3,8 @@ import { NextResponse } from 'next/server';
 export const maxDuration = 60;
 
 // ── helpers ───────────────────────────────────────────────────────────────────
-
 function uint8ToBase64(uint8) {
-  let binary = '';
-  for (let i = 0; i < uint8.length; i++) binary += String.fromCharCode(uint8[i]);
-  return btoa(binary);
+  return Buffer.from(uint8).toString('base64');
 }
 
 function chunkText(text, size = 400) {
