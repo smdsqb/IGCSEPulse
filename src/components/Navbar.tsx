@@ -22,27 +22,35 @@ function AboutModal({ onClose }: { onClose: () => void }) {
         <div className={styles.teamGrid}>
           <div className={styles.teamCard}>
             <div className={styles.teamAvatar}>👨‍💻</div>
-            <div className={styles.teamName}>Shaik Mahammad Saqib</div>
-            <div className={styles.teamRole}>Founder & Developer</div>
-            <div className={styles.teamBio}>A guy who thought using AI to check his handwritten business studies answers during IGCSEs would be a genius move. Turns out, AI can't read chicken scratch. So he roped the other two into building this site instead. What you see here? Yeah, that's his revenge on bad handwriting</div>
+            <div className={styles.teamInfo}>
+              <div className={styles.teamName}>Shaik Mahammad Saqib</div>
+              <div className={styles.teamRole}>Founder & Developer</div>
+              <div className={styles.teamBio}>A guy who thought using AI to check his handwritten business studies answers during IGCSEs would be a genius move. Turns out, AI can't read chicken scratch. So he roped the other two into building this site instead. What you see here? Yeah, that's his revenge on bad handwriting.</div>
+            </div>
           </div>
           <div className={styles.teamCard}>
             <div className={styles.teamAvatar}>👨‍💻</div>
-            <div className={styles.teamName}>Parth Sharma</div>
-            <div className={styles.teamRole}>Co-Founder & Developer</div>
-            <div className={styles.teamBio}>Absolute genius when it comes to anything with a keyboard. Also found out the hard way that his own handwriting was just as unreadable. IGCSEPulse? All his idea. He's the one keeping the website alive and feeding data to the AI—basically the wizard behind the curtain.</div>
+            <div className={styles.teamInfo}>
+              <div className={styles.teamName}>Parth Sharma</div>
+              <div className={styles.teamRole}>Co-Founder & Developer</div>
+              <div className={styles.teamBio}>Absolute genius when it comes to anything with a keyboard. Also found out the hard way that his own handwriting was just as unreadable. IGCSEPulse? All his idea. He's the one keeping the website alive and feeding data to the AI—basically the wizard behind the curtain.</div>
+            </div>
           </div>
           <div className={styles.teamCard}>
             <div className={styles.teamAvatar}>💼</div>
-            <div className={styles.teamName}>Arbaz Khan</div>
-            <div className={styles.teamRole}>Investor & Supporter</div>
-            <div className={styles.teamBio}>Another computer genius, currently doing his internship after graduating from poly. He graciously donates his wallet to cover storage and hosting costs, and swoops in like a hero whenever something catches fire.</div>
+            <div className={styles.teamInfo}>
+              <div className={styles.teamName}>Arbaz Khan</div>
+              <div className={styles.teamRole}>Investor & Supporter</div>
+              <div className={styles.teamBio}>Another computer genius, currently doing his internship after graduating from poly. He graciously donates his wallet to cover storage and hosting costs, and swoops in like a hero whenever something catches fire.</div>
+            </div>
           </div>
           <div className={styles.teamCard}>
             <div className={styles.teamAvatar}>💼</div>
-            <div className={styles.teamName}>Caleb</div>
-            <div className={styles.teamRole}>Investor & Supporter</div>
-            <div className={styles.teamBio}>This page? The domain? Yes, he purchased it to help students have better access!</div>
+            <div className={styles.teamInfo}>
+              <div className={styles.teamName}>Caleb</div>
+              <div className={styles.teamRole}>Investor & Supporter</div>
+              <div className={styles.teamBio}>This page? The domain? Yes, he purchased it to help students have better access!</div>
+            </div>
           </div>
         </div>
       </div>
@@ -169,7 +177,6 @@ export default function Navbar() {
           IGCSE<span>Pulse</span>
         </Link>
 
-        {/* Desktop links — trimmed: no Subjects or Resources */}
         <div className={styles.navLinks}>
           <button className={styles.navTextBtn} onClick={() => setShowAbout(true)}>About</button>
           <Link href="/dashboard">Dashboard</Link>
@@ -179,7 +186,6 @@ export default function Navbar() {
         </div>
 
         <div className={styles.navRight}>
-          {/* Theme switch */}
           <button
             className={styles.themeSwitch}
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -235,7 +241,6 @@ export default function Navbar() {
             </>
           )}
 
-          {/* Hamburger */}
           <button className={styles.hamburger} onClick={() => setMenuOpen(p => !p)} aria-label="Menu">
             <span className={`${styles.hLine} ${menuOpen ? styles.hLine1Open : ""}`} />
             <span className={`${styles.hLine} ${menuOpen ? styles.hLine2Open : ""}`} />
@@ -244,11 +249,9 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Modals */}
       {showAbout    && <AboutModal    onClose={() => setShowAbout(false)} />}
       {showFeedback && <FeedbackModal onClose={() => setShowFeedback(false)} userEmail={user?.email ?? undefined} />}
 
-      {/* Mobile menu */}
       {menuOpen && (
         <div className={styles.mobileMenu}>
           <button className={styles.mobileLink} onClick={() => { setShowAbout(true); setMenuOpen(false); }}>About</button>
