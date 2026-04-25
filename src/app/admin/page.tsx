@@ -9,7 +9,7 @@ import { useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import styles from "./admin.module.css";
 
-const ADMIN_UIDS = ["dEyvyhKqKueCFnWNC1zHiqiIMjj1"];
+const ADMIN_UIDS = ["dEyvyhKqKueCFnWNC1zHiqiIMjj1", "rcqnr0PuqKab08NJ06NqLZTyXmz2"];
 const SUBJECTS = ["business", "math", "physics", "chemistry", "computer-science", "english"];
 
 export default function AdminPage() {
