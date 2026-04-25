@@ -151,7 +151,7 @@
 .modal {
   background: var(--card); border: 1px solid var(--border);
   border-radius: 20px; padding: 28px;
-  max-width: 580px; width: 100%;
+  max-width: 520px; width: 100%;
   max-height: 85vh; overflow-y: auto;
   position: relative; animation: dropIn 0.2s ease;
 }
@@ -171,12 +171,34 @@
 }
 .modalSubtitle { font-size: 13px; color: var(--ink2); margin-bottom: 20px; line-height: 1.6; }
 
-.teamGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
-.teamCard { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 4px; }
-.teamAvatar { font-size: 26px; margin-bottom: 4px; }
-.teamName { font-size: 12px; font-weight: 700; color: var(--ink); word-break: break-word; }
-.teamRole { font-size: 11px; color: var(--pulse); font-weight: 600; }
-.teamBio { font-size: 11px; color: var(--ink2); line-height: 1.5; margin-top: 4px; }
+/* TEAM — single column, row layout per card */
+.teamGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.teamCard {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.teamAvatar {
+  font-size: 24px;
+  width: 42px; height: 42px;
+  flex-shrink: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+}
+.teamInfo { flex: 1; min-width: 0; }
+.teamName { font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 2px; }
+.teamRole { font-size: 11px; color: var(--pulse); font-weight: 600; margin-bottom: 5px; }
+.teamBio { font-size: 12px; color: var(--ink2); line-height: 1.55; }
 
 .feedbackLabel { display: block; font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 6px; margin-top: 14px; }
 .feedbackSelect { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px; font-size: 13px; color: var(--ink); font-family: "DM Sans", sans-serif; outline: none; }
@@ -206,7 +228,6 @@
   border-bottom: 1px solid var(--border);
   position: relative;
   z-index: 99;
-  /* Smooth slide-down */
   animation: slideDown 0.2s ease;
 }
 @keyframes slideDown { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
@@ -224,9 +245,7 @@
   cursor: pointer;
   font-family: "DM Sans", sans-serif;
   transition: background 0.15s;
-  display: block;
   width: 100%;
-  /* Better touch target */
   min-height: 52px;
   display: flex;
   align-items: center;
@@ -245,7 +264,6 @@
   padding: 14px 22px;
   width: calc(100% - 32px);
   border-bottom: none !important;
-  border-radius: 12px;
 }
 
 /* TABLET (1024px and below) */
