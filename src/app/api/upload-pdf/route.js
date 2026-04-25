@@ -2,6 +2,15 @@ import { NextResponse } from 'next/server';
 
 export const maxDuration = 60;
 
+// ── Increase body size limit to 20MB for large PDFs ──────────────────────────
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '20mb',
+    },
+  },
+};
+
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 function uint8ToBase64(uint8) {
@@ -17,10 +26,9 @@ function chunkText(text, size = 400) {
   return chunks.filter(c => c.trim().length > 0);
 }
 
-// ── embed ALL chunks in one Cohere call ───────────────────────────────────────
-// Cohere accepts up to 96 texts per request on the free tier
+// ── embed ALL chunks in batched Cohere calls ──────────────────────────────────
 async function getAllEmbeddings(chunks) {
-  const COHERE_BATCH = 90; // stay safely under the 96 limit
+  const COHERE_BATCH = 90;
   const allEmbeddings = [];
 
   for (let i = 0; i < chunks.length; i += COHERE_BATCH) {
@@ -161,7 +169,7 @@ export async function POST(request) {
     }
     console.log(`[upload-pdf] "${file.name}" → ${chunks.length} chunks`);
 
-    // 3 — Embed ALL chunks in batched Cohere calls (not one-by-one)
+    // 3 — Embed ALL chunks in batched Cohere calls
     let embeddings;
     try {
       embeddings = await getAllEmbeddings(chunks);
