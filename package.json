@@ -10,16 +10,17 @@
   },
   "dependencies": {
     "@pinecone-database/pinecone": "^3.0.0",
-    "pdf-parse": "^1.1.1",
+    "@vercel/analytics": "^2.0.1",
     "clsx": "^2.1.0",
     "firebase": "^10.8.0",
     "firebase-admin": "^12.0.0",
-    "unpdf": "^0.11.0",
     "lucide-react": "^0.344.0",
     "next": "^14.2.32",
+    "pdf-parse": "^1.1.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "tailwind-merge": "^2.2.1"
+    "tailwind-merge": "^2.2.1",
+    "unpdf": "^0.11.0"
   },
   "devDependencies": {
     "@types/node": "^20.11.20",
