@@ -76,6 +76,10 @@ Response → UI
 - DeepSeek  
 - Hugging Face APIs
 - Grok
+- Supabase Storage
+- Railway
+- n8n
+- Flowise
 
 ---
 
