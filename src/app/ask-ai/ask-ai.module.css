@@ -14,6 +14,11 @@
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
 /* LAYOUT */
 .layout {
   display: flex;
