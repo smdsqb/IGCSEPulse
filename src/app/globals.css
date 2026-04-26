@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Syne:wght@400;700;800&family=DM+Sans:wght@400;500;600&display=swap");
 
 *, *::before, *::after {
   box-sizing: border-box;
@@ -60,17 +60,13 @@ button {
   cursor: pointer;
 }
 
-/* ── GLOBAL SYNE FONT RESPONSIVE FIX ─────────────────────────────────── */
-/* Prevent Syne headings from overflowing on tablets/mobile */
 h1, h2, h3, h4, h5, h6 {
   word-break: break-word;
   overflow-wrap: break-word;
   max-width: 100%;
 }
 
-/* Tablet & below (1024px) */
 @media (max-width: 1024px) {
-  /* Any element using Syne font that has large sizes */
   [style*="Syne"],
   .syneFont {
     word-break: break-word;
