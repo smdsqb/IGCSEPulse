@@ -24,7 +24,6 @@ async function getAllEmbeddings(chunks) {
 
   for (let i = 0; i < chunks.length; i += COHERE_BATCH) {
     const batch = chunks.slice(i, i + COHERE_BATCH);
-
     const res = await fetch('https://api.cohere.com/v1/embed', {
       method: 'POST',
       headers: {
@@ -37,12 +36,10 @@ async function getAllEmbeddings(chunks) {
         input_type: 'search_document',
       }),
     });
-
     if (!res.ok) {
       const errBody = await res.text();
       throw new Error(`Cohere embedding failed (${res.status}): ${errBody}`);
     }
-
     const data = await res.json();
     if (!data.embeddings) throw new Error('No embeddings returned from Cohere.');
     allEmbeddings.push(...data.embeddings);
@@ -52,7 +49,6 @@ async function getAllEmbeddings(chunks) {
 }
 
 // ── text extraction: unpdf → Mistral OCR API fallback ────────────────────────
-
 async function extractTextFromPdf(uint8Array) {
   // Step 1: unpdf for text-layer PDFs
   try {
@@ -66,10 +62,10 @@ async function extractTextFromPdf(uint8Array) {
     console.log('[upload-pdf] unpdf failed:', err.message);
   }
 
-  // Step 2: use the dedicated Mistral OCR API (not chat completions)
+  // Step 2: Mistral dedicated OCR API
   console.log('[upload-pdf] Falling back to Mistral OCR API...');
   const mistralKey = process.env.MISTRAL_API_KEY;
-  if (!mistralKey) throw new Error('No text layer found and MISTRAL_API_KEY is not set.');
+  if (!mistralKey) throw new Error('MISTRAL_API_KEY is not set.');
 
   const base64Pdf = uint8ToBase64(uint8Array);
 
@@ -94,8 +90,6 @@ async function extractTextFromPdf(uint8Array) {
   }
 
   const mistralData = await mistralRes.json();
-
-  // Response is { pages: [{ index, markdown, ... }, ...] }
   const pages = mistralData.pages ?? [];
   const fullText = pages.map(p => p.markdown ?? '').join('\n\n').trim();
 
@@ -103,20 +97,17 @@ async function extractTextFromPdf(uint8Array) {
     throw new Error('Mistral OCR returned no usable text from this PDF.');
   }
 
-  console.log('[upload-pdf] Mistral OCR API succeeded, length:', fullText.length);
+  console.log('[upload-pdf] Mistral OCR succeeded, length:', fullText.length);
   return fullText;
 }
 
 // ── route handler ─────────────────────────────────────────────────────────────
-
 export async function POST(request) {
   try {
-    const formData = await request.formData();
-    const file = formData.get('file');
-    const subject = formData.get('subject');
+    const { fileUrl, filename, subject } = await request.json();
 
-    if (!file || !subject) {
-      return NextResponse.json({ error: 'Missing file or subject' }, { status: 400 });
+    if (!fileUrl || !filename || !subject) {
+      return NextResponse.json({ error: 'Missing fileUrl, filename, or subject' }, { status: 400 });
     }
 
     if (!process.env.COHERE_API_KEY) {
@@ -129,10 +120,17 @@ export async function POST(request) {
       return NextResponse.json({ error: 'PINECONE_HOST is not set' }, { status: 500 });
     }
 
-    const arrayBuffer = await file.arrayBuffer();
+    // 1 — Fetch PDF from Firebase Storage URL
+    console.log(`[upload-pdf] Fetching "${filename}" from Firebase Storage...`);
+    const fileRes = await fetch(fileUrl);
+    if (!fileRes.ok) {
+      return NextResponse.json({ error: `Failed to fetch PDF from storage (${fileRes.status})` }, { status: 400 });
+    }
+    const arrayBuffer = await fileRes.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
+    console.log(`[upload-pdf] Fetched ${uint8Array.length} bytes for "${filename}"`);
 
-    // 1 — Extract text (unpdf → Mistral OCR API fallback)
+    // 2 — Extract text (unpdf → Mistral OCR fallback)
     let text;
     try {
       text = await extractTextFromPdf(uint8Array);
@@ -144,14 +142,14 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Could not extract enough text from PDF.' }, { status: 400 });
     }
 
-    // 2 — Chunk
+    // 3 — Chunk
     const chunks = chunkText(text);
     if (chunks.length === 0) {
       return NextResponse.json({ error: 'No usable text chunks found in PDF' }, { status: 400 });
     }
-    console.log(`[upload-pdf] "${file.name}" → ${chunks.length} chunks`);
+    console.log(`[upload-pdf] "${filename}" → ${chunks.length} chunks`);
 
-    // 3 — Embed ALL chunks in batched Cohere calls
+    // 4 — Embed ALL chunks in batched Cohere calls
     let embeddings;
     try {
       embeddings = await getAllEmbeddings(chunks);
@@ -159,15 +157,15 @@ export async function POST(request) {
       return NextResponse.json({ error: `Embedding failed: ${embErr.message}` }, { status: 500 });
     }
 
-    // 4 — Build vectors
+    // 5 — Build vectors
     const vectors = [];
     for (let i = 0; i < chunks.length; i++) {
       const emb = embeddings[i];
       if (emb && emb.length === 384) {
         vectors.push({
-          id: `${subject}-${file.name}-${i}`.replace(/[^a-zA-Z0-9-_]/g, '-'),
+          id: `${subject}-${filename}-${i}`.replace(/[^a-zA-Z0-9-_]/g, '-'),
           values: emb,
-          metadata: { text: chunks[i], subject, source: file.name },
+          metadata: { text: chunks[i], subject, source: filename },
         });
       }
     }
@@ -176,7 +174,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'No valid embeddings were generated' }, { status: 500 });
     }
 
-    // 5 — Upsert into Pinecone in batches of 100
+    // 6 — Upsert into Pinecone in batches of 100
     const BATCH_SIZE = 100;
     for (let b = 0; b < vectors.length; b += BATCH_SIZE) {
       const batch = vectors.slice(b, b + BATCH_SIZE);
@@ -198,7 +196,7 @@ export async function POST(request) {
       }
     }
 
-    return NextResponse.json({ success: true, chunks: vectors.length, filename: file.name });
+    return NextResponse.json({ success: true, chunks: vectors.length, filename });
 
   } catch (error) {
     console.error('[upload-pdf] Unexpected error:', error);
