@@ -37,6 +37,43 @@
 }
 .navTextBtn:hover { color: var(--pulse); }
 
+/* ── NEWS BADGE ────────────────────────────────────────────────────────── */
+.newsBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255,77,109,0.1);
+  border: 1px solid rgba(255,77,109,0.3);
+  border-radius: 50px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--pulse) !important;
+  text-decoration: none !important;
+  transition: background 0.2s, border-color 0.2s;
+  animation: newsBounce 2s ease-in-out infinite;
+}
+.newsBadge:hover {
+  background: rgba(255,77,109,0.18);
+  border-color: var(--pulse);
+}
+.newsDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--pulse);
+  animation: newsPulse 1.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+@keyframes newsPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.7); }
+}
+@keyframes newsBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
 .navRight { display: flex; align-items: center; gap: 10px; }
 
 .themeSwitch {
@@ -83,7 +120,6 @@
 }
 .loginLink:hover { color: var(--ink); }
 
-/* USER MENU */
 .userMenu { display: flex; align-items: center; gap: 10px; position: relative; }
 .avatarWrap {
   width: 32px; height: 32px;
@@ -116,7 +152,6 @@
 }
 .logoutBtn:hover { border-color: var(--pulse); color: var(--pulse); }
 
-/* DROPDOWN */
 .dropdown {
   position: absolute; top: calc(100% + 10px); right: 0;
   background: var(--card); border: 1px solid var(--border);
@@ -140,7 +175,6 @@
 .dropdownItem:hover { background: var(--surface2); }
 .dropdownLogout { color: var(--pulse); }
 
-/* MODALS */
 .modalOverlay {
   position: fixed; inset: 0;
   background: rgba(0,0,0,0.6);
@@ -166,34 +200,20 @@
 .modalTitle {
   font-family: "Syne", sans-serif;
   font-size: 20px; font-weight: 800;
-  color: var(--ink); margin-bottom: 8px;
-  word-break: break-word;
+  color: var(--ink); margin-bottom: 8px; word-break: break-word;
 }
 .modalSubtitle { font-size: 13px; color: var(--ink2); margin-bottom: 20px; line-height: 1.6; }
 
-/* TEAM — single column, row layout per card */
-.teamGrid {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
+.teamGrid { display: flex; flex-direction: column; gap: 10px; }
 .teamCard {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 14px 16px;
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 14px 16px;
+  display: flex; align-items: flex-start; gap: 14px;
 }
 .teamAvatar {
-  font-size: 24px;
-  width: 42px; height: 42px;
-  flex-shrink: 0;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; width: 42px; height: 42px; flex-shrink: 0;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; display: flex; align-items: center; justify-content: center;
 }
 .teamInfo { flex: 1; min-width: 0; }
 .teamName { font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 2px; }
@@ -213,67 +233,42 @@
 .feedbackSuccessText { font-size: 14px; color: var(--ink); font-weight: 600; }
 .feedbackDoneBtn { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 9px 20px; font-size: 13px; font-weight: 600; color: var(--ink); cursor: pointer; font-family: "DM Sans", sans-serif; }
 
-/* HAMBURGER */
 .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 4px; margin-left: 6px; }
 .hLine { width: 20px; height: 2px; background: var(--ink); border-radius: 2px; transition: transform 0.2s, opacity 0.2s; display: block; }
 .hLine1Open { transform: translateY(7px) rotate(45deg); }
 .hLine2Open { opacity: 0; }
 .hLine3Open { transform: translateY(-7px) rotate(-45deg); }
 
-/* MOBILE MENU */
 .mobileMenu {
-  display: none;
-  flex-direction: column;
-  background: var(--card);
-  border-bottom: 1px solid var(--border);
-  position: relative;
-  z-index: 99;
-  animation: slideDown 0.2s ease;
+  display: none; flex-direction: column;
+  background: var(--card); border-bottom: 1px solid var(--border);
+  position: relative; z-index: 99; animation: slideDown 0.2s ease;
 }
 @keyframes slideDown { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
-
 .mobileLink {
-  padding: 15px 22px;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--ink);
-  text-decoration: none;
-  border: none;
-  border-bottom: 1px solid var(--border);
-  background: none;
-  text-align: left;
-  cursor: pointer;
-  font-family: "DM Sans", sans-serif;
-  transition: background 0.15s;
-  width: 100%;
-  min-height: 52px;
-  display: flex;
-  align-items: center;
+  padding: 15px 22px; font-size: 15px; font-weight: 600;
+  color: var(--ink); text-decoration: none; border: none;
+  border-bottom: 1px solid var(--border); background: none;
+  text-align: left; cursor: pointer; font-family: "DM Sans", sans-serif;
+  transition: background 0.15s; width: 100%; min-height: 52px;
+  display: flex; align-items: center;
 }
 .mobileLink:last-child { border-bottom: none; }
 .mobileLink:hover, .mobileLink:active { background: var(--surface2); }
 .mobileLinkAi { color: var(--pulse); }
 .mobileLinkLogout { color: var(--ink2); }
 .mobileLinkCta {
-  margin: 10px 16px 14px;
-  background: var(--pulse);
-  color: #fff !important;
-  border-radius: 12px;
-  text-align: center;
-  justify-content: center;
-  padding: 14px 22px;
-  width: calc(100% - 32px);
-  border-bottom: none !important;
+  margin: 10px 16px 14px; background: var(--pulse);
+  color: #fff !important; border-radius: 12px;
+  text-align: center; justify-content: center;
+  padding: 14px 22px; width: calc(100% - 32px); border-bottom: none !important;
 }
 
-/* TABLET (1024px and below) */
 @media (max-width: 1024px) {
   .nav { padding: 14px 24px; }
   .navLinks { gap: 18px; }
-  .navLinks a { font-size: 13px; }
 }
 
-/* MOBILE (800px and below) */
 @media (max-width: 800px) {
   .nav { padding: 13px 18px; }
   .navLinks { display: none; }
