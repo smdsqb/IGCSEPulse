@@ -92,7 +92,7 @@ export default function DashboardPage() {
             <div className={styles.cardArrow}>→</div>
           </Link> */}
 
-          <Link href="/resources" className={styles.card}>
+          {/*<Link href="/resources" className={styles.card}>
             <div className={`${styles.cardIcon} ${styles.iconResources}`}>🗂️</div>
             <div className={styles.cardContent}>
               <div className={styles.cardTitleRow}>
@@ -107,7 +107,7 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className={styles.cardArrow}>→</div>
-          </Link>
+          </Link>*/}
 
           <Link href="/challenges" className={styles.card}>
             <div className={`${styles.cardIcon} ${styles.iconChallenge}`}>⚡</div>
