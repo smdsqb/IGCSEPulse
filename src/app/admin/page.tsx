@@ -2,8 +2,9 @@
 
 import { useState, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { db } from "@/lib/firebase";
+import { db, storage } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import Navbar from "@/components/Navbar";
@@ -28,10 +29,10 @@ export default function AdminPage() {
   const [msg, setMsg]               = useState("");
 
   // PDF upload state
-  const [pdfSubject, setPdfSubject]     = useState("business");
-  const [pdfFile, setPdfFile]           = useState<File | null>(null);
-  const [uploading, setUploading]       = useState(false);
-  const [uploadMsg, setUploadMsg]       = useState("");
+  const [pdfSubject, setPdfSubject]         = useState("business");
+  const [pdfFile, setPdfFile]               = useState<File | null>(null);
+  const [uploading, setUploading]           = useState(false);
+  const [uploadMsg, setUploadMsg]           = useState("");
   const [duplicateWarning, setDuplicateWarning] = useState(false);
   const [checkingDuplicate, setCheckingDuplicate] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -53,36 +54,84 @@ export default function AdminPage() {
     setPdfFile(file);
     setDuplicateWarning(false);
     setUploadMsg("");
-
     if (!file) return;
-
     setCheckingDuplicate(true);
     try {
       const res = await fetch(`/api/check-pdf?filename=${encodeURIComponent(file.name)}&subject=${pdfSubject}`);
       const data = await res.json();
       if (data.exists) setDuplicateWarning(true);
-    } catch {
-      // silently ignore check errors
-    } finally {
-      setCheckingDuplicate(false);
-    }
+    } catch { /* silently ignore */ }
+    finally { setCheckingDuplicate(false); }
   }
 
   async function handleSubjectChange(newSubject: string) {
     setPdfSubject(newSubject);
     setDuplicateWarning(false);
-
     if (!pdfFile) return;
-
     setCheckingDuplicate(true);
     try {
       const res = await fetch(`/api/check-pdf?filename=${encodeURIComponent(pdfFile.name)}&subject=${newSubject}`);
       const data = await res.json();
       if (data.exists) setDuplicateWarning(true);
-    } catch {
-      // silently ignore
+    } catch { /* silently ignore */ }
+    finally { setCheckingDuplicate(false); }
+  }
+
+  async function handlePdfUpload() {
+    if (!pdfFile) { setUploadMsg("Please select a PDF first."); return; }
+    setUploading(true);
+    setDuplicateWarning(false);
+
+    try {
+      // Step 1 — upload PDF to Firebase Storage (bypasses Vercel's 4.5MB limit)
+      setUploadMsg("Uploading PDF to storage...");
+      const storageRef = ref(storage, `admin_uploads/${Date.now()}_${pdfFile.name}`);
+      await uploadBytes(storageRef, pdfFile);
+      const downloadUrl = await getDownloadURL(storageRef);
+
+      // Step 2 — send just the URL + metadata to the API for OCR + embedding
+      setUploadMsg("Processing PDF with OCR and embedding...");
+      let res: Response;
+      try {
+        res = await fetch("/api/upload-pdf", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fileUrl: downloadUrl,
+            filename: pdfFile.name,
+            subject: pdfSubject,
+          }),
+        });
+      } catch (fetchErr: any) {
+        setUploadMsg(`❌ Network error: ${fetchErr?.message ?? String(fetchErr)}`);
+        return;
+      }
+
+      if (!res.ok) {
+        let body = "";
+        try { body = await res.text(); } catch {}
+        setUploadMsg(`❌ Server error ${res.status}: ${body || "(no body)"}`);
+        return;
+      }
+
+      let data: any;
+      try { data = await res.json(); }
+      catch (jsonErr: any) {
+        setUploadMsg(`❌ Could not parse server response: ${jsonErr?.message}`);
+        return;
+      }
+
+      if (data.success) {
+        setUploadMsg(`✅ ${data.filename} uploaded — ${data.chunks} chunks stored in Pinecone!`);
+        setPdfFile(null);
+        if (fileRef.current) fileRef.current.value = "";
+      } else {
+        setUploadMsg(`❌ Error: ${data.error}`);
+      }
+    } catch (err: any) {
+      setUploadMsg(`❌ Upload failed: ${err?.message ?? String(err)}`);
     } finally {
-      setCheckingDuplicate(false);
+      setUploading(false);
     }
   }
 
@@ -110,53 +159,6 @@ export default function AdminPage() {
       console.error(err);
     } finally {
       setSaving(false);
-    }
-  }
-
-  async function handlePdfUpload() {
-    if (!pdfFile) { setUploadMsg("Please select a PDF first."); return; }
-    setUploading(true);
-    setUploadMsg("Uploading and processing PDF...");
-    setDuplicateWarning(false);
-    try {
-      const formData = new FormData();
-      formData.append("file", pdfFile);
-      formData.append("subject", pdfSubject);
-
-      let res: Response;
-      try {
-        res = await fetch("/api/upload-pdf", { method: "POST", body: formData });
-      } catch (fetchErr: any) {
-        // fetch itself threw — network error, request aborted, etc.
-        setUploadMsg(`❌ Network error: ${fetchErr?.message ?? String(fetchErr)}`);
-        return;
-      }
-
-      // Show raw response if not ok and can't parse JSON
-      if (!res.ok) {
-        let body = "";
-        try { body = await res.text(); } catch {}
-        setUploadMsg(`❌ Server error ${res.status}: ${body || "(no body)"}`);
-        return;
-      }
-
-      let data: any;
-      try {
-        data = await res.json();
-      } catch (jsonErr: any) {
-        setUploadMsg(`❌ Could not parse server response: ${jsonErr?.message}`);
-        return;
-      }
-
-      if (data.success) {
-        setUploadMsg(`✅ ${data.filename} uploaded — ${data.chunks} chunks stored in Pinecone!`);
-        setPdfFile(null);
-        if (fileRef.current) fileRef.current.value = "";
-      } else {
-        setUploadMsg(`❌ Error: ${data.error}`);
-      }
-    } finally {
-      setUploading(false);
     }
   }
 
