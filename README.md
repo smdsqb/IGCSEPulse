@@ -24,7 +24,7 @@ Built with a **modular, API-first architecture** for rapid iteration and scalabi
 
 ---
 
-## 🧠 System Architecture
+## 🧠 System Architecture for Data Retrieval by AI
 
 Client (Next.js UI)  
 ↓  
@@ -46,15 +46,16 @@ Response → UI
 - Fully responsive UI
 
 ### Backend / Infrastructure
-- Vercel (serverless deployment)
-- Firebase (authentication)
+- Vercel (serverless deployment & env var storage)
+- Firebase (authentication & storage)
 - GitHub (CI / version control)
 
 ### AI / Data Layer
-- Mistral (LLM + document reading)
+- Mistral (LLM + document reading using OCR tech)
 - Cohere (embeddings)
 - Pinecone (vector database)
 - Groq (low-latency inference)
+- Firebase (storage of pdf)
 
 ---
 
@@ -65,35 +66,35 @@ Response → UI
 - Vercel Hosting  
 - Pinecone Vector Index  
 - Cohere Embeddings  
-- Mistral Document Processing  
+- Mistral Document Processing using OCR tech
 - Groq Inference Engine  
 
 ### Evaluated / Tested
-- OpenAI  
+- OpenAI ChatGPT
 - Google Gemini  
 - Anthropic Claude  
 - DeepSeek  
-- Hugging Face APIs  
+- Hugging Face APIs
+- Grok
 
 ---
 
 ## 📄 Core Features
 
-### 💬 AI Chat Interface
+### 💬 AI Chat Interface & Community Page
 - Real-time conversational system  
 - Context-aware responses  
-- Multi-model support  
 
 ---
 
 ### 📄 Document Processing Pipeline
 
 PDF Upload  
-→ Text Extraction  
+→ Text Extraction (Mistral)
 → Chunking  
 → Embedding (Cohere)  
-→ Vector Storage (Pinecone)  
-→ Retrieval + AI Response  
+→ Vector Storage (Pinecone & Firebase)  
+→ Retrieval + AI Response using src/api/
 
 ---
 
@@ -113,9 +114,9 @@ PDF Upload
 
 ## 🌐 Deployment & Platform
 
-- Custom domain configured  
+- Custom domain configured - April 25 2026 by u/quackabc
 - Google verification completed  
-- AdSense integrated  
+- AdSense integrated (still awaiting approval)
 - Deployed on Vercel  
 
 ---
@@ -148,15 +149,9 @@ Explored:
 
 ---
 
-## 💡 Philosophy
-
-Ship fast → Learn faster → Iterate continuously  
-
----
-
 ## 🧑‍💻 Author
 
-Built **solo in 14 days**, integrating multiple AI systems while learning each technology in real-time.
+Built **solo in 14 days** by u/sqbsmd (Saqib), integrating multiple AI systems while learning each technology in real-time.
 
 ---
 
