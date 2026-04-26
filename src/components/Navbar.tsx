@@ -28,14 +28,14 @@ function AboutModal({ onClose }: { onClose: () => void }) {
               <div className={styles.teamBio}>A computer nerd who thought using AI to check his handwritten business studies answers during IGCSEs would be a genius move. Turns out, AI can't read chicken scratch. What you see here? Yeah, that's all his revenge on bad handwriting.</div>
             </div>
           </div>
-          <div className={styles.teamCard}>
+          {/*<div className={styles.teamCard}>
             <div className={styles.teamAvatar}>👨‍💻</div>
             <div className={styles.teamInfo}>
               <div className={styles.teamName}>Parth Sharma</div>
               <div className={styles.teamRole}>Co-Founder & Developer</div>
               <div className={styles.teamBio}>Absolute genius when it comes to anything with a keyboard. Also found out the hard way that his own handwriting was just as unreadable. IGCSEPulse? All his idea. He's the one feeding data to the AI.</div>
             </div>
-          </div>
+          </div>*/}
           <div className={styles.teamCard}>
             <div className={styles.teamAvatar}>💼</div>
             <div className={styles.teamInfo}>
