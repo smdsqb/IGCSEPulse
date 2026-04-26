@@ -5,11 +5,10 @@ import styles from "./Navbar.module.css";
 import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
 import { logout, db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot } from "firebase/firestore";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-// ── About Modal ───────────────────────────────────────────────────────────────
 function AboutModal({ onClose }: { onClose: () => void }) {
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
@@ -58,15 +57,9 @@ function AboutModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-// ── Feedback Modal ────────────────────────────────────────────────────────────
 const FEEDBACK_FEATURES = [
-  "AI Tutor (Ask AI)",
-  "Past Paper Upload",
-  "Resources",
-  "Dashboard",
-  "Community",
-  "Subjects",
-  "General / Other",
+  "AI Tutor (Ask AI)", "Past Paper Upload", "Resources",
+  "Dashboard", "Community", "Subjects", "General / Other",
 ];
 
 function FeedbackModal({ onClose, userEmail }: { onClose: () => void; userEmail?: string }) {
@@ -78,22 +71,15 @@ function FeedbackModal({ onClose, userEmail }: { onClose: () => void; userEmail?
 
   async function handleSubmit() {
     if (!message.trim()) { setError("Please write your feedback before sending."); return; }
-    setSending(true);
-    setError("");
+    setSending(true); setError("");
     try {
       await addDoc(collection(db, "feedback"), {
-        feature,
-        message: message.trim(),
-        userEmail: userEmail ?? "anonymous",
-        createdAt: serverTimestamp(),
+        feature, message: message.trim(),
+        userEmail: userEmail ?? "anonymous", createdAt: serverTimestamp(),
       });
       setSent(true);
-    } catch (err) {
-      console.error("Feedback save error:", err);
-      setError("Failed to send feedback. Please try again.");
-    } finally {
-      setSending(false);
-    }
+    } catch { setError("Failed to send feedback. Please try again."); }
+    finally { setSending(false); }
   }
 
   return (
@@ -101,9 +87,7 @@ function FeedbackModal({ onClose, userEmail }: { onClose: () => void; userEmail?
       <div className={styles.modal} onClick={e => e.stopPropagation()}>
         <button className={styles.modalClose} onClick={onClose}>✕</button>
         <h2 className={styles.modalTitle}>Send Feedback</h2>
-        <p className={styles.modalSubtitle}>
-          We read every message. Tell us what's working, what's broken, or what you'd love to see.
-        </p>
+        <p className={styles.modalSubtitle}>We read every message. Tell us what's working, what's broken, or what you'd love to see.</p>
         {sent ? (
           <div className={styles.feedbackSuccess}>
             <div className={styles.feedbackSuccessIcon}>✓</div>
@@ -135,7 +119,6 @@ function FeedbackModal({ onClose, userEmail }: { onClose: () => void; userEmail?
   );
 }
 
-// ── Navbar ────────────────────────────────────────────────────────────────────
 export default function Navbar() {
   const { theme, setTheme } = useTheme();
   const { user, loading }   = useAuth();
@@ -145,7 +128,20 @@ export default function Navbar() {
   const [showFeedback, setShowFeedback] = useState(false);
   const [menuOpen,     setMenuOpen]     = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [hasNewUpdate, setHasNewUpdate] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Watch for unread updates
+  useEffect(() => {
+    const lastRead = parseInt(localStorage.getItem("igcsepulse_updates_read") ?? "0");
+    const q = query(collection(db, "updates"), orderBy("createdAt", "desc"));
+    const unsub = onSnapshot(q, (snap) => {
+      if (snap.empty) { setHasNewUpdate(false); return; }
+      const latestTs = snap.docs[0].data().createdAt?.toMillis?.() ?? 0;
+      setHasNewUpdate(latestTs > lastRead);
+    });
+    return unsub;
+  }, []);
 
   async function handleLogout() {
     await logout();
@@ -170,6 +166,11 @@ export default function Navbar() {
         : user.email?.[0].toUpperCase() ?? "?")
     : "";
 
+  function markUpdatesRead() {
+    localStorage.setItem("igcsepulse_updates_read", Date.now().toString());
+    setHasNewUpdate(false);
+  }
+
   return (
     <>
       <nav className={styles.nav}>
@@ -183,6 +184,12 @@ export default function Navbar() {
           <Link href="/leaderboard">Leaderboard</Link>
           <Link href="/ask-ai" className={styles.aiLink}>Ask AI ✦</Link>
           <button className={styles.navTextBtn} onClick={() => setShowFeedback(true)}>Feedback</button>
+          {hasNewUpdate && (
+            <Link href="/updates" className={styles.newsBadge} onClick={markUpdatesRead}>
+              <span className={styles.newsDot} />
+              New
+            </Link>
+          )}
         </div>
 
         <div className={styles.navRight}>
@@ -192,26 +199,18 @@ export default function Navbar() {
             title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
           >
             <span className={`${styles.themeSwitchKnob} ${theme === "light" ? styles.themeSwitchKnobRight : ""}`} />
-            <span className={styles.themeSwitchIcon}>
-              {theme === "dark" ? "☀️" : "🌙"}
-            </span>
+            <span className={styles.themeSwitchIcon}>{theme === "dark" ? "☀️" : "🌙"}</span>
           </button>
 
           {!loading && (
             <>
               {user ? (
                 <div className={styles.userMenu} ref={dropdownRef}>
-                  <div
-                    className={styles.avatarWrap}
-                    onClick={() => setDropdownOpen(p => !p)}
-                    title={user.displayName ?? user.email ?? ""}
-                  >
+                  <div className={styles.avatarWrap} onClick={() => setDropdownOpen(p => !p)} title={user.displayName ?? user.email ?? ""}>
                     {user.photoURL
                       ? <img src={user.photoURL} alt="avatar" className={styles.avatarImg} />
-                      : <div className={styles.avatar}>{initials}</div>
-                    }
+                      : <div className={styles.avatar}>{initials}</div>}
                   </div>
-
                   {dropdownOpen && (
                     <div className={styles.dropdown}>
                       <div className={styles.dropdownUser}>
@@ -219,16 +218,10 @@ export default function Navbar() {
                         <div className={styles.dropdownEmail}>{user.email}</div>
                       </div>
                       <div className={styles.dropdownDivider} />
-                      <Link href="/profile" className={styles.dropdownItem} onClick={() => setDropdownOpen(false)}>
-                        🏅 My Profile
-                      </Link>
-                      <Link href="/settings" className={styles.dropdownItem} onClick={() => setDropdownOpen(false)}>
-                        ⚙️ Settings
-                      </Link>
+                      <Link href="/profile" className={styles.dropdownItem} onClick={() => setDropdownOpen(false)}>🏅 My Profile</Link>
+                      <Link href="/settings" className={styles.dropdownItem} onClick={() => setDropdownOpen(false)}>⚙️ Settings</Link>
                       <div className={styles.dropdownDivider} />
-                      <button className={`${styles.dropdownItem} ${styles.dropdownLogout}`} onClick={handleLogout}>
-                        🚪 Sign Out
-                      </button>
+                      <button className={`${styles.dropdownItem} ${styles.dropdownLogout}`} onClick={handleLogout}>🚪 Sign Out</button>
                     </div>
                   )}
                 </div>
@@ -259,6 +252,11 @@ export default function Navbar() {
           <Link href="/leaderboard" className={styles.mobileLink} onClick={() => setMenuOpen(false)}>Leaderboard</Link>
           <Link href="/ask-ai" className={`${styles.mobileLink} ${styles.mobileLinkAi}`} onClick={() => setMenuOpen(false)}>Ask AI ✦</Link>
           <button className={styles.mobileLink} onClick={() => { setShowFeedback(true); setMenuOpen(false); }}>Feedback</button>
+          {hasNewUpdate && (
+            <Link href="/updates" className={styles.mobileLink} onClick={() => { markUpdatesRead(); setMenuOpen(false); }}>
+              🔴 What&apos;s New
+            </Link>
+          )}
           {user && <Link href="/profile" className={styles.mobileLink} onClick={() => setMenuOpen(false)}>🏅 My Profile</Link>}
           {user && <Link href="/settings" className={styles.mobileLink} onClick={() => setMenuOpen(false)}>⚙️ Settings</Link>}
           {user && <button className={`${styles.mobileLink} ${styles.mobileLinkLogout}`} onClick={handleLogout}>Sign Out</button>}
