@@ -52,6 +52,19 @@ function genId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
+// ── Extract pseudocode blocks from AI message ────────────────────────────────
+function extractPseudocode(text: string): string | null {
+  // Look for a pseudocode or plain code block
+  const match = text.match(/```(?:pseudocode|cambridge-pseudocode|cps)?\s*\n([\s\S]*?)```/i);
+  if (match) return match[1].trim();
+  return null;
+}
+
+function openInPseudocodeEditor(code: string) {
+  const url = `https://www.cambridge-pseudocode.com/?code=${encodeURIComponent(code)}`;
+  window.open(url, "_blank", "noopener,noreferrer");
+}
+
 // ── Markdown renderer ────────────────────────────────────────────────────────
 function renderMarkdown(text: string, isCs: boolean) {
   const lines = text.split("\n");
@@ -64,11 +77,24 @@ function renderMarkdown(text: string, isCs: boolean) {
       const codeLines: string[] = [];
       i++;
       while (i < lines.length && !lines[i].trim().startsWith("```")) { codeLines.push(lines[i]); i++; }
+      const codeText = codeLines.join("\n");
+      const isPseudo = /^(pseudocode|cambridge-pseudocode|cps|)$/i.test(lang);
       elements.push(
         <div key={`code-${i}`} className={styles.codeBlock}>
           {lang && <div className={styles.codeLang}>{lang}</div>}
-          <pre><code>{codeLines.join("\n")}</code></pre>
-          <button className={styles.copyCode} onClick={() => navigator.clipboard.writeText(codeLines.join("\n"))}>📋 Copy</button>
+          <pre><code>{codeText}</code></pre>
+          <div className={styles.codeActions}>
+            <button className={styles.copyCode} onClick={() => navigator.clipboard.writeText(codeText)}>📋 Copy</button>
+            {isPseudo && (
+              <button
+                className={styles.runPseudoBtn}
+                onClick={() => openInPseudocodeEditor(codeText)}
+                title="Run on cambridge-pseudocode.com"
+              >
+                ▶ Run
+              </button>
+            )}
+          </div>
         </div>
       );
       i++; continue;
@@ -266,7 +292,6 @@ export default function AskAiPage() {
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, sending]);
 
-  // Close sidebar on outside click
   useEffect(() => {
     if (!sidebarOpen) return;
     const handler = (e: MouseEvent) => {
@@ -460,7 +485,7 @@ export default function AskAiPage() {
       <Navbar />
       <div className={styles.layout}>
 
-        {/* SIDEBAR OVERLAY (tablet/mobile) */}
+        {/* SIDEBAR OVERLAY */}
         {sidebarOpen && (
           <div className={styles.sidebarOverlay} onClick={() => setSidebarOpen(false)} />
         )}
@@ -513,7 +538,6 @@ export default function AskAiPage() {
 
           {/* HEADER */}
           <div className={styles.chatHeader}>
-            {/* Sidebar toggle — shown on tablet/mobile */}
             <button className={styles.historyToggle} onClick={() => setSidebarOpen(p => !p)} title="Past chats">
               ☰
             </button>
@@ -529,23 +553,6 @@ export default function AskAiPage() {
               )}
               <button className={styles.newChatBtn} onClick={newChat}>+ New</button>
             </div>
-          </div>
-
-          {/* SUBJECT TABS */}
-          <div className={styles.selectors}>
-            <div className={styles.subjectTabs}>
-              {SUBJECTS.map((s) => (
-                <button key={s.id} className={`${styles.subjectTab} ${subject === s.id ? styles.subjectTabActive : ""}`} onClick={() => setSubject(s.id)}>
-                  <span>{s.icon}</span>
-                  <span className={styles.subjectTabName}>{s.name}</span>
-                  <span className={styles.subjectTabCode}>{s.code}</span>
-                </button>
-              ))}
-            </div>
-            <select className={styles.marksSelect} value={marks} onChange={(e) => setMarks(e.target.value)}>
-              <option value="">Marks</option>
-              {MARKS.map((m) => <option key={m} value={m}>{m}m</option>)}
-            </select>
           </div>
 
           {/* MESSAGES */}
@@ -604,6 +611,15 @@ export default function AskAiPage() {
                       )}
                       <div className={styles.msgActions}>
                         <button className={styles.copyBtn} onClick={() => navigator.clipboard.writeText(msg.text)}>📋 Copy</button>
+                        {/* Run in pseudocode editor button — shown if message contains a pseudocode block */}
+                        {extractPseudocode(msg.text) && (
+                          <button
+                            className={styles.runPseudoBtnInline}
+                            onClick={() => openInPseudocodeEditor(extractPseudocode(msg.text)!)}
+                          >
+                            ▶ Run in Editor
+                          </button>
+                        )}
                       </div>
                     </>
                   )}
@@ -632,11 +648,11 @@ export default function AskAiPage() {
             </div>
           )}
 
-          {/* INPUT AREA — ChatGPT/Claude style */}
+          {/* INPUT AREA */}
           <div className={styles.inputArea}>
             <input type="file" accept={ACCEPTED_FILES} ref={fileRef} onChange={handleFileChange} className={styles.hiddenFile} />
 
-            {/* File preview bar above input box */}
+            {/* File preview bar */}
             {attachedFile && (
               <div className={styles.filePreviewBar}>
                 {filePreview
@@ -649,9 +665,29 @@ export default function AskAiPage() {
               </div>
             )}
 
+            {/* Subject + Marks selectors row — sits just above the input box */}
+            <div className={styles.inputSelectors}>
+              <select
+                className={styles.inputSubjectSelect}
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+              >
+                {SUBJECTS.map((s) => (
+                  <option key={s.id} value={s.id}>{s.icon} {s.name}</option>
+                ))}
+              </select>
+              <select
+                className={styles.inputMarksSelect}
+                value={marks}
+                onChange={(e) => setMarks(e.target.value)}
+              >
+                <option value="">N/A</option>
+                {MARKS.map((m) => <option key={m} value={m}>{m} marks</option>)}
+              </select>
+            </div>
+
             {/* The main input box */}
             <div className={styles.inputBox}>
-              {/* Left icons */}
               <div className={styles.inputActions}>
                 <button
                   className={`${styles.inputIconBtn} ${attachedFile ? styles.inputIconBtnActive : ""}`}
@@ -665,17 +701,15 @@ export default function AskAiPage() {
                 >{listening ? "🔴" : "🎤"}</button>
               </div>
 
-              {/* Textarea */}
               <textarea
                 className={styles.textInput}
-                placeholder={attachedFile ? `Message about ${attachedFile.name}...` : `Ask about ${activeSubject?.name}... (Enter to send, Shift+Enter for new line)`}
+                placeholder={attachedFile ? `Message about ${attachedFile.name}...` : `Ask about ${activeSubject?.name}...`}
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
                 onKeyDown={handleKeyDown}
                 rows={1}
               />
 
-              {/* Send button */}
               <button
                 className={styles.sendBtn}
                 onClick={askQuestion}
