@@ -17,10 +17,14 @@
 /* LAYOUT */
 .layout {
   display: flex;
-  height: calc(100dvh - 61px);
+  position: fixed;
+  top: 61px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: auto;
   background: var(--surface);
   overflow: hidden;
-  position: relative;
 }
 
 /* SIDEBAR */
