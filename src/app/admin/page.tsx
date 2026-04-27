@@ -196,16 +196,18 @@ export default function AdminPage() {
     }
     setPostingUpdate(true);
     try {
-      await addDoc(collection(db, "updates"), {
-        title: updateTitle.trim(),
-        body: updateBody.trim(),
-        badge: updateBadge,
-        createdAt: serverTimestamp(),
+      const res = await fetch("/api/post-update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: updateTitle.trim(), body: updateBody.trim(), badge: updateBadge, uid: user.uid }),
       });
-      setUpdateMsg("✅ Update posted! It's now live on the /updates page.");
-      setUpdateTitle("");
-      setUpdateBody("");
-      setUpdateBadge(UPDATE_BADGES[0]);
+      const data = await res.json();
+      if (data.success) {
+        setUpdateMsg("✅ Update posted! It's now live on the /updates page.");
+        setUpdateTitle(""); setUpdateBody(""); setUpdateBadge(UPDATE_BADGES[0]);
+      } else {
+        setUpdateMsg(`❌ Error: ${data.error}`);
+      }
     } catch (err) {
       setUpdateMsg("❌ Failed to post update.");
       console.error(err);
