@@ -39,7 +39,7 @@ export default function UpdatesPage() {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
             const id = (entry.target as HTMLElement).dataset.id;
-            if (id) setVisible(prev => new Set([...prev, id]));
+            if (id) setVisible(prev => new Set(Array.from(prev).concat(id)));
           }
         });
       },
