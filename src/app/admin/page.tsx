@@ -13,6 +13,8 @@ import styles from "./admin.module.css";
 const ADMIN_UIDS = ["dEyvyhKqKueCFnWNC1zHiqiIMjj1", "rcqnr0PuqKab08NJ06NqLZTyXmz2"];
 const SUBJECTS = ["business", "math", "physics", "chemistry", "computer-science", "english"];
 
+const UPDATE_BADGES = ["New Feature", "Improvement", "Bug Fix", "Announcement", "Coming Soon"];
+
 export default function AdminPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
@@ -42,6 +44,13 @@ export default function AdminPage() {
   const [deleteFilename, setDeleteFilename] = useState("");
   const [deleting, setDeleting]           = useState(false);
   const [deleteMsg, setDeleteMsg]         = useState("");
+
+  // ── Update state ────────────────────────────────────────────────────────
+  const [updateTitle, setUpdateTitle]   = useState("");
+  const [updateBody, setUpdateBody]     = useState("");
+  const [updateBadge, setUpdateBadge]   = useState(UPDATE_BADGES[0]);
+  const [postingUpdate, setPostingUpdate] = useState(false);
+  const [updateMsg, setUpdateMsg]       = useState("");
 
   useEffect(() => {
     if (!loading && (!user || !ADMIN_UIDS.includes(user.uid))) {
@@ -83,24 +92,18 @@ export default function AdminPage() {
     setDuplicateWarning(false);
 
     try {
-      // Step 1 — upload PDF to Firebase Storage (bypasses Vercel's 4.5MB limit)
       setUploadMsg("Uploading PDF to storage...");
       const storageRef = ref(storage, `admin_uploads/${Date.now()}_${pdfFile.name}`);
       await uploadBytes(storageRef, pdfFile);
       const downloadUrl = await getDownloadURL(storageRef);
 
-      // Step 2 — send just the URL + metadata to the API for OCR + embedding
       setUploadMsg("Processing PDF with OCR and embedding...");
       let res: Response;
       try {
         res = await fetch("/api/upload-pdf", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            fileUrl: downloadUrl,
-            filename: pdfFile.name,
-            subject: pdfSubject,
-          }),
+          body: JSON.stringify({ fileUrl: downloadUrl, filename: pdfFile.name, subject: pdfSubject }),
         });
       } catch (fetchErr: any) {
         setUploadMsg(`❌ Network error: ${fetchErr?.message ?? String(fetchErr)}`);
@@ -187,6 +190,30 @@ export default function AdminPage() {
     }
   }
 
+  async function handlePostUpdate() {
+    if (!updateTitle.trim() || !updateBody.trim()) {
+      setUpdateMsg("❌ Please fill in the title and body."); return;
+    }
+    setPostingUpdate(true);
+    try {
+      await addDoc(collection(db, "updates"), {
+        title: updateTitle.trim(),
+        body: updateBody.trim(),
+        badge: updateBadge,
+        createdAt: serverTimestamp(),
+      });
+      setUpdateMsg("✅ Update posted! It's now live on the /updates page.");
+      setUpdateTitle("");
+      setUpdateBody("");
+      setUpdateBadge(UPDATE_BADGES[0]);
+    } catch (err) {
+      setUpdateMsg("❌ Failed to post update.");
+      console.error(err);
+    } finally {
+      setPostingUpdate(false);
+    }
+  }
+
   if (loading || !user) return null;
   if (!ADMIN_UIDS.includes(user.uid)) return null;
 
@@ -196,7 +223,63 @@ export default function AdminPage() {
       <main className={styles.main}>
         <h1 className={styles.title}>Admin Panel</h1>
 
-        {/* PDF UPLOAD SECTION */}
+        {/* ── POST UPDATE SECTION ─────────────────────────────────────── */}
+        <div className={styles.form}>
+          <h2 style={{ fontFamily: "Syne, sans-serif", fontSize: "18px", fontWeight: 800, margin: 0 }}>
+            📣 Post Update / What&apos;s New
+          </h2>
+          <p style={{ fontSize: "13px", color: "var(--ink2)", margin: 0 }}>
+            Post a new update that will appear on the <code style={{ background: "rgba(255,77,109,0.1)", color: "var(--pulse)", borderRadius: "4px", padding: "1px 5px" }}>/updates</code> page. A glowing <strong>New</strong> badge will appear in the navbar for all users until they visit the page.
+          </p>
+
+          {updateMsg && (
+            <div className={styles.msg} style={{
+              background: updateMsg.startsWith("✅") ? "rgba(0,201,167,0.1)" : "rgba(255,80,80,0.1)",
+              color: updateMsg.startsWith("✅") ? "#00C9A7" : "#ff5050",
+            }}>
+              {updateMsg}
+            </div>
+          )}
+
+          <div className={styles.field}>
+            <label>Title</label>
+            <input
+              value={updateTitle}
+              onChange={e => setUpdateTitle(e.target.value)}
+              placeholder="e.g. AI Tutor now supports image uploads"
+            />
+          </div>
+
+          <div className={styles.row}>
+            <div className={styles.field}>
+              <label>Badge</label>
+              <select value={updateBadge} onChange={e => setUpdateBadge(e.target.value)}>
+                {UPDATE_BADGES.map(b => <option key={b} value={b}>{b}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div className={styles.field}>
+            <label>Body</label>
+            <textarea
+              value={updateBody}
+              onChange={e => setUpdateBody(e.target.value)}
+              rows={6}
+              placeholder="Describe the update in detail. Markdown-style line breaks are preserved."
+            />
+          </div>
+
+          <button
+            className={styles.postBtn}
+            onClick={handlePostUpdate}
+            disabled={postingUpdate}
+            style={{ background: "linear-gradient(135deg, var(--pulse), rgba(155,127,212,0.85))" }}
+          >
+            {postingUpdate ? "Posting..." : "Post Update 📣"}
+          </button>
+        </div>
+
+        {/* ── PDF UPLOAD SECTION ──────────────────────────────────────── */}
         <div className={styles.form}>
           <h2 style={{ fontFamily: "Syne, sans-serif", fontSize: "18px", fontWeight: 800, margin: 0 }}>
             📚 Upload Past Paper / Mark Scheme to AI
@@ -234,13 +317,7 @@ export default function AdminPage() {
             </div>
             <div className={styles.field}>
               <label>PDF File</label>
-              <input
-                type="file"
-                accept=".pdf"
-                ref={fileRef}
-                onChange={handleFileChange}
-                style={{ padding: "8px" }}
-              />
+              <input type="file" accept=".pdf" ref={fileRef} onChange={handleFileChange} style={{ padding: "8px" }} />
             </div>
           </div>
 
@@ -254,13 +331,13 @@ export default function AdminPage() {
           </button>
         </div>
 
-        {/* DELETE SECTION */}
+        {/* ── DELETE SECTION ──────────────────────────────────────────── */}
         <div className={styles.form}>
           <h2 style={{ fontFamily: "Syne, sans-serif", fontSize: "18px", fontWeight: 800, margin: 0 }}>
             🗑️ Delete PDF from AI
           </h2>
           <p style={{ fontSize: "13px", color: "var(--ink2)", margin: 0 }}>
-            Remove a PDF's vectors from Pinecone. The filename must match exactly what was uploaded (e.g. <code>Chapter1.pdf</code>).
+            Remove a PDF&apos;s vectors from Pinecone. The filename must match exactly what was uploaded (e.g. <code>Chapter1.pdf</code>).
           </p>
 
           {deleteMsg && (
@@ -300,7 +377,7 @@ export default function AdminPage() {
           </button>
         </div>
 
-        {/* CHALLENGE SECTION */}
+        {/* ── CHALLENGE SECTION ───────────────────────────────────────── */}
         <div className={styles.form}>
           <h2 style={{ fontFamily: "Syne, sans-serif", fontSize: "18px", fontWeight: 800, margin: 0 }}>
             ⚡ Post Challenge
