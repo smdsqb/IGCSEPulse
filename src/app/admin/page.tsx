@@ -199,7 +199,7 @@ export default function AdminPage() {
       const res = await fetch("/api/post-update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: updateTitle.trim(), body: updateBody.trim(), badge: updateBadge, uid: user.uid }),
+        body: JSON.stringify({ title: updateTitle.trim(), body: updateBody.trim(), badge: updateBadge, uid: user?.uid }),
       });
       const data = await res.json();
       if (data.success) {
