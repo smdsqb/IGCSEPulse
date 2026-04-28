@@ -2,7 +2,9 @@
 
 import { useEffect, useState, useRef } from "react";
 import { db } from "@/lib/firebase";
-import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot, Timestamp } from "firebase/firestore";
+import { useAuth } from "@/context/AuthContext";
+import { doc, setDoc } from "firebase/firestore";
 import Navbar from "@/components/Navbar";
 import styles from "./updates.module.css";
 
@@ -10,121 +12,150 @@ interface Update {
   id: string;
   title: string;
   body: string;
-  badge?: string;
-  createdAt: any;
+  badge: string;
+  createdAt: Timestamp | null;
+}
+
+const BADGE_COLORS: Record<string, string> = {
+  "New Feature":   "rgba(155,127,212,0.18)",
+  "Improvement":   "rgba(0,201,167,0.15)",
+  "Bug Fix":       "rgba(255,77,109,0.15)",
+  "Announcement":  "rgba(255,193,7,0.15)",
+  "Coming Soon":   "rgba(59,130,246,0.15)",
+};
+const BADGE_TEXT: Record<string, string> = {
+  "New Feature":   "#9B7FD4",
+  "Improvement":   "#00C9A7",
+  "Bug Fix":       "#FF4D6D",
+  "Announcement":  "#FFC107",
+  "Coming Soon":   "#3B82F6",
+};
+
+function formatDate(ts: Timestamp | null) {
+  if (!ts) return "";
+  return ts.toDate().toLocaleDateString([], { year: "numeric", month: "long", day: "numeric" });
 }
 
 export default function UpdatesPage() {
+  const { user } = useAuth();
   const [updates, setUpdates] = useState<Update[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [visible, setVisible] = useState<Set<string>>(new Set());
+  const [loaded, setLoaded] = useState(false);
+  const [visibleIds, setVisibleIds] = useState<Set<string>>(new Set());
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
+  // Mark as read when user visits
   useEffect(() => {
-    // Mark updates as read
-    localStorage.setItem("igcsepulse_updates_read", Date.now().toString());
+    if (!user) return;
+    setDoc(doc(db, "users", user.uid), { lastSeenUpdates: Date.now() }, { merge: true });
+  }, [user]);
 
+  useEffect(() => {
     const q = query(collection(db, "updates"), orderBy("createdAt", "desc"));
-    const unsub = onSnapshot(q, snap => {
+    const unsub = onSnapshot(q, (snap) => {
       setUpdates(snap.docs.map(d => ({ id: d.id, ...d.data() } as Update)));
-      setLoading(false);
+      setLoaded(true);
     });
     return unsub;
   }, []);
 
-  // Intersection Observer for staggered reveal
+  // Intersection observer for scroll-in animations
   useEffect(() => {
+    if (!loaded) return;
     const observer = new IntersectionObserver(
-      entries => {
+      (entries) => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
             const id = (entry.target as HTMLElement).dataset.id;
-            if (id) setVisible(prev => new Set(Array.from(prev).concat(id)));
+            if (id) setVisibleIds(prev => new Set([...prev, id]));
           }
         });
       },
-      { threshold: 0.15 }
+      { threshold: 0.12 }
     );
-
     cardRefs.current.forEach(el => observer.observe(el));
     return () => observer.disconnect();
-  }, [updates]);
-
-  function formatDate(ts: any) {
-    if (!ts) return "";
-    const d = ts.toDate ? ts.toDate() : new Date(ts);
-    return d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-  }
+  }, [loaded, updates]);
 
   return (
     <>
       <Navbar />
       <div className={styles.page}>
-        {/* ── HERO ─────────────────────────────────────────────── */}
+        {/* Ambient background blobs */}
+        <div className={styles.blob1} />
+        <div className={styles.blob2} />
+        <div className={styles.blob3} />
+
+        {/* Hero */}
         <div className={styles.hero}>
-          <div className={styles.heroOrb1} />
-          <div className={styles.heroOrb2} />
-          <div className={styles.heroOrb3} />
-          <div className={styles.heroContent}>
-            <div className={styles.heroBadge}>
-              <span className={styles.heroDot} />
-              What&apos;s New
-            </div>
-            <h1 className={styles.heroTitle}>
-              Updates &amp;<br />
-              <span className={styles.heroAccent}>Release Notes</span>
-            </h1>
-            <p className={styles.heroSub}>
-              New features, improvements, and fixes — straight from the team.
-            </p>
+          <div className={styles.heroBadge}>
+            <span className={styles.heroDot} />
+            What&apos;s New
           </div>
-          <div className={styles.heroDivider} />
+          <h1 className={styles.heroTitle}>
+            Updates &<br /><span className={styles.heroAccent}>Changelog</span>
+          </h1>
+          <p className={styles.heroSub}>
+            Everything new, improved, and coming soon to IGCSEPulse.
+          </p>
         </div>
 
-        {/* ── CONTENT ──────────────────────────────────────────── */}
-        <div className={styles.content}>
-          {loading ? (
-            <div className={styles.loadWrap}>
-              <div className={styles.loadPulse} />
-              <div className={styles.loadPulse} style={{ animationDelay: "0.15s" }} />
-              <div className={styles.loadPulse} style={{ animationDelay: "0.3s" }} />
-            </div>
-          ) : updates.length === 0 ? (
-            <div className={styles.empty}>
-              <div className={styles.emptyIcon}>🚀</div>
-              <div className={styles.emptyTitle}>Nothing yet</div>
-              <div className={styles.emptySub}>Check back soon — updates drop regularly.</div>
-            </div>
-          ) : (
-            <div className={styles.timeline}>
-              {updates.map((update, i) => (
-                <div
-                  key={update.id}
-                  ref={el => { if (el) cardRefs.current.set(update.id, el); }}
-                  data-id={update.id}
-                  className={`${styles.card} ${visible.has(update.id) ? styles.cardVisible : ""}`}
-                  style={{ transitionDelay: `${i * 0.05}s` }}
-                >
-                  {/* Line connector */}
-                  <div className={styles.connector}>
-                    <div className={styles.connectorDot} />
-                    {i < updates.length - 1 && <div className={styles.connectorLine} />}
-                  </div>
-
-                  <div className={styles.cardInner}>
-                    <div className={styles.cardMeta}>
-                      {update.badge && (
-                        <span className={styles.badge}>{update.badge}</span>
-                      )}
-                      <span className={styles.date}>{formatDate(update.createdAt)}</span>
-                    </div>
-                    <h2 className={styles.cardTitle}>{update.title}</h2>
-                    <div className={styles.cardBody}>{update.body}</div>
-                  </div>
-                </div>
-              ))}
+        {/* Timeline */}
+        <div className={styles.timeline}>
+          {!loaded && (
+            <div className={styles.loadingState}>
+              <div className={styles.spinner} />
             </div>
           )}
+          {loaded && updates.length === 0 && (
+            <div className={styles.emptyState}>
+              <div className={styles.emptyIcon}>✦</div>
+              <p>No updates posted yet. Check back soon.</p>
+            </div>
+          )}
+          {updates.map((update, i) => (
+            <div
+              key={update.id}
+              data-id={update.id}
+              ref={el => { if (el) cardRefs.current.set(update.id, el); }}
+              className={`${styles.card} ${visibleIds.has(update.id) ? styles.cardVisible : ""}`}
+              style={{ transitionDelay: `${i * 60}ms` }}
+            >
+              {/* Timeline dot + line */}
+              <div className={styles.timelineTrack}>
+                <div className={styles.timelineDot} />
+                {i < updates.length - 1 && <div className={styles.timelineLine} />}
+              </div>
+
+              <div className={styles.cardInner}>
+                <div className={styles.cardMeta}>
+                  <span
+                    className={styles.badgePill}
+                    style={{
+                      background: BADGE_COLORS[update.badge] ?? "rgba(155,127,212,0.15)",
+                      color: BADGE_TEXT[update.badge] ?? "#9B7FD4",
+                    }}
+                  >
+                    {update.badge}
+                  </span>
+                  <span className={styles.cardDate}>{formatDate(update.createdAt)}</span>
+                </div>
+
+                <h2 className={styles.cardTitle}>{update.title}</h2>
+
+                <div className={styles.cardBody}>
+                  {update.body.split("\n").filter(Boolean).map((line, j) => (
+                    <p key={j}>{line}</p>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className={styles.footer}>
+          <span className={styles.footerDot} />
+          <span>End of changelog</span>
+          <span className={styles.footerDot} />
         </div>
       </div>
     </>
