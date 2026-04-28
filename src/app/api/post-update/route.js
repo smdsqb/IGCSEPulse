@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
-import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 
 const ADMIN_UIDS = ["dEyvyhKqKueCFnWNC1zHiqiIMjj1", "rcqnr0PuqKab08NJ06NqLZTyXmz2"];
 
@@ -30,11 +30,14 @@ export async function POST(request) {
     }
 
     const db = getAdminDb();
+    // Use Timestamp.now() instead of FieldValue.serverTimestamp()
+    // serverTimestamp() resolves to null on the client until Firestore confirms,
+    // which breaks orderBy("createdAt") queries and hides the doc entirely.
     await db.collection('updates').add({
       title: title.trim(),
       body: body.trim(),
       badge: badge ?? 'New Feature',
-      createdAt: FieldValue.serverTimestamp(),
+      createdAt: Timestamp.now(),
     });
 
     return NextResponse.json({ success: true });
