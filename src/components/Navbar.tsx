@@ -5,7 +5,7 @@ import styles from "./Navbar.module.css";
 import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
 import { logout, db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, limit } from "firebase/firestore";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -133,11 +133,16 @@ export default function Navbar() {
 
   // Watch for unread updates using localStorage (no Firebase auth dependency)
   useEffect(() => {
-    const lastRead = parseInt(localStorage.getItem("igcsepulse_updates_read") ?? "0");
-    const q = query(collection(db, "updates"), orderBy("createdAt", "desc"));
+    const q = query(collection(db, "updates"), orderBy("createdAt", "desc"), limit(1));
     const unsub = onSnapshot(q, (snap) => {
       if (snap.empty) { setHasNewUpdate(false); return; }
-      const latestTs = snap.docs[0].data().createdAt?.toMillis?.() ?? 0;
+      const data = snap.docs[0].data();
+      // Re-read localStorage inside callback so we always have the latest value
+      const lastRead = parseInt(localStorage.getItem("igcsepulse_updates_read") ?? "0");
+      // createdAt is a Firestore Timestamp — use toMillis(). 
+      // If it's null (rare race condition on write), fall back to a far-future value
+      // so we DO show the badge rather than silently hiding it.
+      const latestTs = data.createdAt?.toMillis?.() ?? (Date.now() + 1);
       setHasNewUpdate(latestTs > lastRead);
     });
     return unsub;
