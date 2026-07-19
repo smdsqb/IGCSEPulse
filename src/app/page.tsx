@@ -6,6 +6,7 @@ import AiSection from "@/components/AiSection";
 import Community from "@/components/Community";  // ← keep this as Community
 import Footer from "@/components/Footer";
 
+
 export default function Home() {
   return (
     <>
